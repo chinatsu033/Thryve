@@ -580,3 +580,171 @@ p {
   padding: 48px;
   color: var(--color-text-muted);
 }
+
+/* —— Emotion lake flow —— */
+.flow-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(26, 26, 46, 0.5);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+
+.flow-sheet {
+  background: var(--color-surface);
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  max-height: 100dvh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  padding-bottom: var(--safe-bottom);
+}
+
+.flow-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 8px;
+  position: sticky;
+  top: 0;
+  background: rgba(245, 247, 255, 0.92);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+
+.flow-close {
+  border: none;
+  background: rgba(26, 26, 46, 0.06);
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--color-text-muted);
+}
+
+.flow-steps {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.flow-steps .on {
+  color: var(--color-primary);
+}
+
+.flow-body {
+  padding: 8px 18px 28px;
+  flex: 1;
+}
+
+.flow-title {
+  font-size: 1.35rem;
+  margin-bottom: 4px;
+}
+
+.flow-sub {
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  margin-bottom: 14px;
+}
+
+.lake-scene {
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: 16px;
+  background: #c5d4e8;
+  aspect-ratio: 16 / 10;
+}
+
+.lake-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.lake-slider-wrap {
+  margin-bottom: 18px;
+}
+
+.lake-range {
+  width: 100%;
+  accent-color: var(--color-primary);
+  height: 8px;
+}
+
+.lake-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+@keyframes lake-rain-fall {
+  0% { transform: translateY(-8px); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(110px); opacity: 0.15; }
+}
+
+.lake-rain line {
+  animation: lake-rain-fall 0.9s linear infinite;
+}
+
+.lake-rain.heavy line {
+  animation-duration: 0.55s;
+}
+
+@keyframes lake-cloud-drift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(12px); }
+}
+
+.lake-clouds {
+  animation: lake-cloud-drift 8s ease-in-out infinite alternate;
+}
+
+.lake-clouds.wind {
+  animation-duration: 2.8s;
+}
+
+@keyframes lake-duck-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.lake-ducks {
+  animation: lake-duck-bob 2.4s ease-in-out infinite;
+}
+
+@keyframes lake-sun-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.lake-sun {
+  animation: lake-sun-glow 4s ease-in-out infinite;
+}
+
+@keyframes lake-wind-dash {
+  0% { stroke-dashoffset: 40; opacity: 0.2; }
+  50% { opacity: 0.7; }
+  100% { stroke-dashoffset: 0; opacity: 0.15; }
+}
+
+.lake-wind path {
+  stroke-dasharray: 40;
+  animation: lake-wind-dash 1.4s linear infinite;
+}

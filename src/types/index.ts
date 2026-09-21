@@ -25,12 +25,15 @@ export interface Profile {
 
 export type EmotionMode = 'current' | 'daily'
 
+/** mood: 1–100 (legacy IndexedDB rows may still be 1–10 without `sources`). */
 export interface EmotionEntry {
   id: string
   profileId: string
   mode: EmotionMode
   mood: number
   tags: string[]
+  /** Where the feeling comes from (absent on legacy 1–10 rows). */
+  sources?: string[]
   notes: string
   recordedAt: string
   createdAt: string
@@ -105,6 +108,7 @@ export interface ProfileExport {
   attachments: Array<AttachmentMeta & { dataBase64: string }>
 }
 
+/** @deprecated Prefer POSITIVE/NEGATIVE sets in lib/mood — kept for any leftover refs */
 export const EMOTION_TAGS = [
   '焦虑',
   '平静',

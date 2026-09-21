@@ -25,6 +25,7 @@ import {
   listSleeps,
   saveAttachment,
 } from '../lib/db'
+import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import type {
   AttachmentMeta,
   DepressiveEntry,
@@ -37,11 +38,15 @@ type RangeKey = '7' | '14' | '30' | 'custom'
 
 function moodColor(mood: number | undefined): string {
   if (mood == null) return '#e8eaf0'
-  const t = (mood - 1) / 9
+  const t = (mood - 1) / 99
   const r = Math.round(120 + (91 - 120) * t)
   const g = Math.round(140 + (108 - 140) * t)
   const b = Math.round(220 + (255 - 220) * t)
   return `rgb(${r},${g},${b})`
+}
+
+function mood100(e: EmotionEntry): number {
+  return normalizeMood(e.mood, e)
 }
 
 export function SummaryPage() {
@@ -132,7 +137,9 @@ export function SummaryPage() {
       )
       const avgMood =
         dayEmotions.length > 0
-          ? Math.round((dayEmotions.reduce((a, b) => a + b.mood, 0) / dayEmotions.length) * 10) / 10
+          ? Math.round(
+              (dayEmotions.reduce((a, b) => a + mood100(b), 0) / dayEmotions.length) * 10,
+            ) / 10
           : null
       const sleep = filteredSleeps.find((s) => s.date === key)
       const eating = filteredEatings.find((e) => e.date === key)
@@ -148,13 +155,13 @@ export function SummaryPage() {
 
   const bullets = useMemo(() => {
     const lines: string[] = []
-    const moods = filteredEmotions.map((e) => e.mood)
+    const moods = filteredEmotions.map((e) => mood100(e))
     if (moods.length) {
       const avg = moods.reduce((a, b) => a + b, 0) / moods.length
       const min = Math.min(...moods)
       const max = Math.max(...moods)
       lines.push(
-        `情绪记录 ${moods.length} 条，平均 ${avg.toFixed(1)}/10（最低 ${min}，最高 ${max}）。`,
+        `情绪记录 ${moods.length} 条，平均约「${moodSoftLabel(avg)}」（相对量表 0–100：均 ${avg.toFixed(0)}，最低 ${min.toFixed(0)}，最高 ${max.toFixed(0)}）。`,
       )
       const tagCount = new Map<string, number>()
       filteredEmotions.forEach((e) => e.tags.forEach((t) => tagCount.set(t, (tagCount.get(t) ?? 0) + 1)))
@@ -317,13 +324,32 @@ export function SummaryPage() {
             style={{ width: '100%', height: 280 }}
           >
             <ResponsiveContainer>
-              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(26,26,46,0.08)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <YAxis
+                  yAxisId="mood"
+                  domain={[0, 100]}
+                  tick={{ fontSize: 11 }}
+                  width={36}
+                />
+                <YAxis
+                  yAxisId="body"
+                  orientation="right"
+                  domain={[0, 10]}
+                  tick={{ fontSize: 11 }}
+                  width={28}
+                />
+                <Tooltip
+                  formatter={(value, name) => {
+                    if (value == null) return ['—', String(name)]
+                    if (name === '情绪') return [Number(value).toFixed(0), '情绪(0–100)']
+                    return [String(value), String(name)]
+                  }}
+                />
                 <Legend />
                 <Line
+                  yAxisId="mood"
                   type="monotone"
                   dataKey="mood"
                   name="情绪"
@@ -333,6 +359,7 @@ export function SummaryPage() {
                   connectNulls
                 />
                 <Line
+                  yAxisId="body"
                   type="monotone"
                   dataKey="sleep"
                   name="睡眠质量"
@@ -342,6 +369,7 @@ export function SummaryPage() {
                   connectNulls
                 />
                 <Line
+                  yAxisId="body"
                   type="monotone"
                   dataKey="appetite"
                   name="食欲"
@@ -358,7 +386,7 @@ export function SummaryPage() {
 
       <Card title="情绪日历热力图">
         <div className="hint" style={{ marginBottom: 8 }}>
-          按日平均情绪着色（越蓝越高）
+          按日平均情绪着色（越蓝越高；量表 0–100）
         </div>
         <div className="heatmap" aria-label="情绪热力图">
           {chartData.map((d) => (
@@ -367,9 +395,9 @@ export function SummaryPage() {
               className="heatmap-cell"
               style={{
                 background: moodColor(d.mood ?? undefined),
-                color: d.mood != null && d.mood >= 6 ? '#fff' : 'var(--color-text-muted)',
+                color: d.mood != null && d.mood >= 55 ? '#fff' : 'var(--color-text-muted)',
               }}
-              title={`${d.full}: ${d.mood ?? '无数据'}`}
+              title={d.mood != null ? `${d.full}: ${moodSoftLabel(d.mood)}` : `${d.full}: 无数据`}
             >
               {d.date.split('/')[1]}
             </div>

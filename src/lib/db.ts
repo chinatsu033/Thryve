@@ -9,6 +9,17 @@ import type {
   SleepEntry,
 } from '../types'
 import { DEFAULT_THEME } from '../types'
+import { isLegacyMoodEntry, normalizeMood } from './mood'
+
+/** Ensure sources exists; scale legacy 1–10 mood → 1–100 in memory (does not rewrite DB). */
+function hydrateEmotion(e: EmotionEntry): EmotionEntry {
+  const sources = e.sources ?? []
+  if (isLegacyMoodEntry(e)) {
+    return { ...e, sources, mood: normalizeMood(e.mood, e) }
+  }
+  return { ...e, sources }
+}
+
 
 interface PsychDB extends DBSchema {
   profiles: {
@@ -158,7 +169,10 @@ async function listByProfile<T extends { profileId: string }>(
   return rows as unknown as T[]
 }
 
-export const listEmotions = (pid: string) => listByProfile<EmotionEntry>('emotions', pid)
+export const listEmotions = async (pid: string) => {
+  const rows = await listByProfile<EmotionEntry>('emotions', pid)
+  return rows.map(hydrateEmotion)
+}
 export const listSleeps = (pid: string) => listByProfile<SleepEntry>('sleeps', pid)
 export const listEatings = (pid: string) => listByProfile<EatingEntry>('eatings', pid)
 export const listDepressives = (pid: string) => listByProfile<DepressiveEntry>('depressives', pid)
@@ -288,7 +302,7 @@ export async function importProfile(
   const remap = (oldId: string) => `${opts.newId}:${oldId.split(':').pop() ?? oldId}`
 
   for (const e of data.emotions ?? []) {
-    await putEmotion({ ...e, id: remap(e.id), profileId: opts.newId })
+    await putEmotion(hydrateEmotion({ ...e, id: remap(e.id), profileId: opts.newId, sources: e.sources ?? [] }))
   }
   for (const e of data.sleeps ?? []) {
     await putSleep({ ...e, id: remap(e.id), profileId: opts.newId })

@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { listDepressives, listEmotions, listSleeps } from '../lib/db'
+import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import type { DepressiveEntry, EmotionEntry, SleepEntry } from '../types'
 
 export function HomePage() {
@@ -33,6 +34,8 @@ export function HomePage() {
   const latestSleep = sleeps[0]
   const openEp = deps.find((d) => !d.endedAt)
 
+  const labelFor = (e: EmotionEntry) => moodSoftLabel(normalizeMood(e.mood, e))
+
   return (
     <Page title={`你好，${profile.name}`} sub="今天也请温柔对待自己。">
       <Disclaimer />
@@ -51,7 +54,7 @@ export function HomePage() {
       <Card title="今日速览">
         {latestMood ? (
           <p>
-            最近情绪：<strong>{latestMood.mood}/10</strong>
+            最近情绪：<strong>{labelFor(latestMood)}</strong>
             {latestMood.tags.length ? ` · ${latestMood.tags.join('、')}` : ''}
             <br />
             <span className="meta hint">
@@ -97,7 +100,7 @@ export function HomePage() {
             {emotions.slice(0, 5).map((e) => (
               <div key={e.id} className="list-item">
                 <div>
-                  <strong>{e.mood}/10</strong>
+                  <strong>{labelFor(e)}</strong>
                   {e.tags.length ? ` · ${e.tags.join('、')}` : ''}
                   {e.notes ? <div className="hint">{e.notes.slice(0, 80)}</div> : null}
                   <div className="meta">

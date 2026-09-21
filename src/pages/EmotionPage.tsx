@@ -1,20 +1,32 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { useCallback, useEffect, useState } from 'react'
-import { Button, Empty, Field, Modal, MoodSlider, Page } from '../components/ui'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { LakeMoodScene } from '../components/LakeMoodScene'
+import { Button, Empty, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
 import { deleteEmotion, listEmotions, putEmotion } from '../lib/db'
-import { EMOTION_TAGS, type EmotionEntry, type EmotionMode } from '../types'
+import {
+  EMOTION_SOURCE_WORDS,
+  emotionWordsForMood,
+  moodSoftLabel,
+  normalizeMood,
+} from '../lib/mood'
+import type { EmotionEntry } from '../types'
+
+type Step = 'mood' | 'words' | 'source'
 
 export function EmotionPage() {
   const { profile } = useAuth()
   const [items, setItems] = useState<EmotionEntry[]>([])
   const [open, setOpen] = useState(false)
-  const [mode, setMode] = useState<EmotionMode>('current')
-  const [mood, setMood] = useState(5)
+  const [step, setStep] = useState<Step>('mood')
+  const [mood, setMood] = useState(50)
   const [tags, setTags] = useState<string[]>([])
+  const [customWord, setCustomWord] = useState('')
+  const [sources, setSources] = useState<string[]>([])
+  const [customSource, setCustomSource] = useState('')
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -28,35 +40,71 @@ export function EmotionPage() {
     void reload()
   }, [reload])
 
+  const wordChoices = useMemo(() => emotionWordsForMood(mood), [mood])
+
   if (!profile) return null
 
-  const toggleTag = (t: string) => {
-    setTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+  const resetFlow = () => {
+    setStep('mood')
+    setMood(50)
+    setTags([])
+    setCustomWord('')
+    setSources([])
+    setCustomSource('')
+    setNotes('')
   }
 
-  const resetForm = () => {
-    setMode('current')
-    setMood(5)
-    setTags([])
-    setNotes('')
+  const closeFlow = () => {
+    setOpen(false)
+    resetFlow()
+  }
+
+  const openFlow = () => {
+    resetFlow()
+    setOpen(true)
+  }
+
+  const toggle = (list: string[], setList: (v: string[]) => void, value: string) => {
+    setList(list.includes(value) ? list.filter((x) => x !== value) : [...list, value])
+  }
+
+  const addCustomWord = () => {
+    const w = customWord.trim()
+    if (!w) return
+    if (!tags.includes(w)) setTags([...tags, w])
+    setCustomWord('')
+  }
+
+  const addCustomSource = () => {
+    const w = customSource.trim()
+    if (!w) return
+    if (!sources.includes(w)) setSources([...sources, w])
+    setCustomSource('')
   }
 
   const save = async () => {
     setBusy(true)
     try {
+      const finalTags = [...tags]
+      const cw = customWord.trim()
+      if (cw && !finalTags.includes(cw)) finalTags.push(cw)
+      const finalSources = [...sources]
+      const cs = customSource.trim()
+      if (cs && !finalSources.includes(cs)) finalSources.push(cs)
+
       const entry: EmotionEntry = {
         id: uid(),
         profileId: profile.id,
-        mode,
+        mode: 'current',
         mood,
-        tags,
+        tags: finalTags,
+        sources: finalSources,
         notes: notes.trim(),
         recordedAt: new Date().toISOString(),
         createdAt: new Date().toISOString(),
       }
       await putEmotion(entry)
-      setOpen(false)
-      resetForm()
+      closeFlow()
       await reload()
     } finally {
       setBusy(false)
@@ -69,12 +117,17 @@ export function EmotionPage() {
     await reload()
   }
 
+  const displayLabel = (e: EmotionEntry) => {
+    const m = normalizeMood(e.mood, e)
+    return moodSoftLabel(m)
+  }
+
   return (
     <Page
       title="情绪记录"
-      sub="记录当下感受，或回顾一整天的心情。"
+      sub="用湖面风景感受当下，再轻轻写下词语与来源。"
       actions={
-        <Button className="btn-sm no-print" onClick={() => setOpen(true)}>
+        <Button className="btn-sm no-print" onClick={openFlow}>
           ＋ 新建
         </Button>
       }
@@ -94,7 +147,7 @@ export function EmotionPage() {
                 exit={{ opacity: 0, scale: 0.96 }}
               >
                 <div>
-                  <strong style={{ color: 'var(--color-primary)' }}>{e.mood}/10</strong>
+                  <strong style={{ color: 'var(--color-primary)' }}>{displayLabel(e)}</strong>
                   <span className="hint">
                     {' '}
                     · {e.mode === 'daily' ? '全天总结' : '当下感受'}
@@ -102,10 +155,19 @@ export function EmotionPage() {
                   {e.tags.length > 0 ? (
                     <div style={{ marginTop: 6 }} className="tag-grid">
                       {e.tags.map((t) => (
-                        <span key={t} className="tag active" style={{ cursor: 'default', padding: '4px 10px' }}>
+                        <span
+                          key={t}
+                          className="tag active"
+                          style={{ cursor: 'default', padding: '4px 10px' }}
+                        >
                           {t}
                         </span>
                       ))}
+                    </div>
+                  ) : null}
+                  {(e.sources ?? []).length > 0 ? (
+                    <div className="hint" style={{ marginTop: 6 }}>
+                      来源：{(e.sources ?? []).join('、')}
                     </div>
                   ) : null}
                   {e.notes ? <p style={{ marginTop: 8, marginBottom: 0 }}>{e.notes}</p> : null}
@@ -122,49 +184,213 @@ export function EmotionPage() {
         )}
       </AnimatePresence>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="记录情绪">
-        <div className="chip-row">
-          <button
-            type="button"
-            className={`chip ${mode === 'current' ? 'active' : ''}`}
-            onClick={() => setMode('current')}
+      <AnimatePresence>
+        {open ? (
+          <motion.div
+            className="flow-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            role="presentation"
           >
-            当下感受
-          </button>
-          <button
-            type="button"
-            className={`chip ${mode === 'daily' ? 'active' : ''}`}
-            onClick={() => setMode('daily')}
-          >
-            全天总结
-          </button>
-        </div>
-        <MoodSlider value={mood} onChange={setMood} />
-        <Field label="情绪标签">
-          <div className="tag-grid">
-            {EMOTION_TAGS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`tag ${tags.includes(t) ? 'active' : ''}`}
-                onClick={() => toggleTag(t)}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="备注">
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="发生了什么？身体感觉如何？"
-          />
-        </Field>
-        <Button block disabled={busy} onClick={() => void save()}>
-          {busy ? '保存中…' : '保存'}
-        </Button>
-      </Modal>
+            <motion.div
+              className="flow-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="记录情绪"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            >
+              <div className="flow-header">
+                <button type="button" className="flow-close" onClick={closeFlow} aria-label="关闭">
+                  ✕
+                </button>
+                <div className="flow-steps" aria-hidden>
+                  <span className={step === 'mood' ? 'on' : ''}>风景</span>
+                  <span>·</span>
+                  <span className={step === 'words' ? 'on' : ''}>词语</span>
+                  <span>·</span>
+                  <span className={step === 'source' ? 'on' : ''}>来源</span>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                {step === 'mood' ? (
+                  <motion.div
+                    key="mood"
+                    className="flow-body"
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                  >
+                    <h2 className="flow-title">此刻的湖面</h2>
+                    <p className="flow-sub">滑动感受风景变化，无需看到数字。</p>
+                    <LakeMoodScene mood={mood} />
+                    <div className="lake-slider-wrap">
+                      <input
+                        type="range"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={mood}
+                        onChange={(e) => setMood(Number(e.target.value))}
+                        aria-valuemin={1}
+                        aria-valuemax={100}
+                        aria-valuenow={mood}
+                        aria-label="情绪：低谷到盛放"
+                        className="lake-range"
+                      />
+                      <div className="lake-slider-labels">
+                        <span>低谷</span>
+                        <span>盛放</span>
+                      </div>
+                    </div>
+                    <Button block onClick={() => setStep('words')}>
+                      确定
+                    </Button>
+                  </motion.div>
+                ) : null}
+
+                {step === 'words' ? (
+                  <motion.div
+                    key="words"
+                    className="flow-body"
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                  >
+                    <h2 className="flow-title">用词语形容</h2>
+                    <p className="flow-sub">可多选，也可写下自己的词。</p>
+                    <div className="tag-grid" style={{ marginBottom: 14 }}>
+                      {wordChoices.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`tag ${tags.includes(t) ? 'active' : ''}`}
+                          onClick={() => toggle(tags, setTags, t)}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                      {tags
+                        .filter((t) => !wordChoices.includes(t))
+                        .map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            className="tag active"
+                            onClick={() => toggle(tags, setTags, t)}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                    </div>
+                    <Field label="自定义词语">
+                      <div className="row" style={{ alignItems: 'stretch' }}>
+                        <input
+                          value={customWord}
+                          onChange={(e) => setCustomWord(e.target.value)}
+                          placeholder="输入后点添加"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addCustomWord()
+                            }
+                          }}
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <Button variant="ghost" className="btn-sm" onClick={addCustomWord}>
+                          添加
+                        </Button>
+                      </div>
+                    </Field>
+                    <div className="row">
+                      <Button variant="ghost" onClick={() => setStep('mood')}>
+                        上一步
+                      </Button>
+                      <Button onClick={() => setStep('source')}>继续</Button>
+                    </div>
+                  </motion.div>
+                ) : null}
+
+                {step === 'source' ? (
+                  <motion.div
+                    key="source"
+                    className="flow-body"
+                    initial={{ opacity: 0, x: 24 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -24 }}
+                  >
+                    <h2 className="flow-title">它从哪里来</h2>
+                    <p className="flow-sub">选择或写下感受的来源。</p>
+                    <div className="tag-grid" style={{ marginBottom: 14 }}>
+                      {EMOTION_SOURCE_WORDS.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          className={`tag ${sources.includes(t) ? 'active' : ''}`}
+                          onClick={() => toggle(sources, setSources, t)}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                      {sources
+                        .filter((t) => !(EMOTION_SOURCE_WORDS as readonly string[]).includes(t))
+                        .map((t) => (
+                          <button
+                            key={t}
+                            type="button"
+                            className="tag active"
+                            onClick={() => toggle(sources, setSources, t)}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                    </div>
+                    <Field label="自定义来源">
+                      <div className="row" style={{ alignItems: 'stretch' }}>
+                        <input
+                          value={customSource}
+                          onChange={(e) => setCustomSource(e.target.value)}
+                          placeholder="输入后点添加"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addCustomSource()
+                            }
+                          }}
+                          style={{ flex: 1, minWidth: 0 }}
+                        />
+                        <Button variant="ghost" className="btn-sm" onClick={addCustomSource}>
+                          添加
+                        </Button>
+                      </div>
+                    </Field>
+                    <Field label="备注（可选）">
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="想补充的一点细节…"
+                        rows={3}
+                      />
+                    </Field>
+                    <div className="row">
+                      <Button variant="ghost" onClick={() => setStep('words')}>
+                        上一步
+                      </Button>
+                      <Button disabled={busy} onClick={() => void save()}>
+                        {busy ? '保存中…' : '保存'}
+                      </Button>
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </Page>
   )
 }

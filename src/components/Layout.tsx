@@ -4,9 +4,7 @@ import { useAuth } from '../context/AuthContext'
 
 const NAV: Array<{ to: string; label: string; icon: string; end?: boolean }> = [
   { to: '/', label: '首页', icon: '🏠', end: true },
-  { to: '/emotion', label: '情绪', icon: '💭' },
-  { to: '/body', label: '身心', icon: '🌙' },
-  { to: '/summary', label: '总结', icon: '📊' },
+  { to: '/summary', label: '就医总结', icon: '📊' },
   { to: '/settings', label: '设置', icon: '⚙️' },
 ]
 
