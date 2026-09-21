@@ -78,7 +78,7 @@ export function LakeMoodScene({ mood = 50, className = '' }: Props) {
   const rainCount = Math.round(storm * 28)
   const wind = storm > 0.55
   const waveAmp = 2 + storm * 10
-  const sunOpacity = bright * 0.95
+  const sunOpacity = (1 - storm * 0.7) * (0.28 + bright * 0.67)
   const cloudOpacity = 0.25 + storm * 0.65 + (1 - bright) * 0.15
 
   const skyId = `skyGrad-${uid}`
@@ -121,12 +121,6 @@ export function LakeMoodScene({ mood = 50, className = '' }: Props) {
 
         <rect width="320" height="200" fill={`url(#${skyId})`} />
 
-        {/* Sun */}
-        <g opacity={sunOpacity} className={bright > 0.3 ? 'lake-sun' : undefined}>
-          <circle cx="255" cy="42" r="18" fill="#FFE082" />
-          <circle cx="255" cy="42" r="28" fill="#FFE082" opacity="0.25" />
-        </g>
-
         {/* Clouds */}
         <g opacity={cloudOpacity} className={wind ? 'lake-clouds wind' : 'lake-clouds'}>
           <ellipse cx="70" cy="38" rx="36" ry="14" fill="#fff" />
@@ -153,6 +147,13 @@ export function LakeMoodScene({ mood = 50, className = '' }: Props) {
           fill={`url(#${mtNearId})`}
           opacity="0.95"
         />
+
+        {/* Sun — above ridgeline near peaks; drawn after mountains so it stays visible */}
+        <g opacity={sunOpacity} className={bright > 0.25 ? 'lake-sun' : undefined}>
+          <circle cx="232" cy="52" r="22" fill="#FFE082" opacity="0.28" />
+          <circle cx="232" cy="52" r="14" fill="#FFECB3" />
+          <circle cx="232" cy="52" r="10" fill="#FFE082" />
+        </g>
 
         {/* Lake */}
         <path d={wavePath(128, 0)} fill={`url(#${lakeId})`} className="lake-water" />

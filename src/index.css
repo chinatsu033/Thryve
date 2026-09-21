@@ -14,6 +14,7 @@
   --radius-md: 20px;
   --radius-lg: 28px;
   --radius-xl: 36px;
+  --radius-full: 999px;
   --shadow-sm: 0 2px 8px rgba(26, 26, 46, 0.06);
   --shadow-md: 0 8px 24px rgba(26, 26, 46, 0.08);
   --shadow-lg: 0 16px 48px rgba(26, 26, 46, 0.12);
@@ -240,7 +241,7 @@ p {
 .tag {
   border: 2px solid var(--color-border);
   background: #fff;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   padding: 8px 14px;
   font-size: 0.88rem;
   cursor: pointer;
@@ -335,7 +336,7 @@ p {
   width: 40px;
   height: 4px;
   background: var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   margin: 0 auto 14px;
 }
 
@@ -358,7 +359,7 @@ p {
 }
 
 .chip {
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 2px solid var(--color-border);
   background: #fff;
   padding: 8px 14px;
@@ -381,7 +382,7 @@ p {
 
 .heatmap-cell {
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #e8eaf0;
   display: flex;
   align-items: center;
@@ -393,7 +394,7 @@ p {
 .color-swatch {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   border: 3px solid #fff;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
@@ -429,7 +430,7 @@ p {
 .preset-card .swatches span {
   width: 18px;
   height: 18px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 .empty {
@@ -501,7 +502,7 @@ p {
   width: 48px;
   height: 48px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
 }
 
 @media print {
@@ -559,7 +560,7 @@ p {
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow-lg);
-  border-radius: 32px;
+  border-radius: var(--radius-xl);
   -webkit-overflow-scrolling: touch;
 }
 
@@ -580,7 +581,7 @@ p {
   background: rgba(255, 255, 255, 0.72);
   width: 36px;
   height: 36px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   cursor: pointer;
   font-size: 1rem;
   color: var(--color-text-muted);
@@ -688,7 +689,7 @@ p {
 /* Uniform solid track (filled + empty same color) */
 .lake-range::-webkit-slider-runnable-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.72);
   border: none;
 }
@@ -707,14 +708,14 @@ p {
 
 .lake-range::-moz-range-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.72);
   border: none;
 }
 
 .lake-range::-moz-range-progress {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgba(255, 255, 255, 0.72);
   border: none;
 }
@@ -991,7 +992,7 @@ p {
   width: 36px;
   height: 36px;
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--color-primary);
   cursor: pointer;
@@ -1025,7 +1026,7 @@ p {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius-sm);
   background: var(--color-card);
   color: var(--color-text-muted);
   box-shadow: var(--shadow-sm);

@@ -433,7 +433,7 @@ export function SummaryPage() {
                     style={{
                       width: 48,
                       height: 48,
-                      borderRadius: 8,
+                      borderRadius: 'var(--radius-sm)',
                       background: 'rgba(var(--color-primary-rgb),0.12)',
                       display: 'flex',
                       alignItems: 'center',
