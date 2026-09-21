@@ -14,6 +14,44 @@ type Layer = 'landing' | 'dashboard'
 
 const SWIPE_THRESHOLD = 56
 
+const LANDING_MODULES: Array<{ to: string; label: string; hint: string }> = [
+  { to: '/summary', label: '心迹', hint: '就医总结' },
+  { to: '/emotion', label: '倾听', hint: '情绪记录' },
+  { to: '/body', label: '基石', hint: '身心打卡' },
+]
+
+function ChevronUpIcon() {
+  return (
+    <svg className="home-chevron-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      {/* Pure geometric ∧ — no vertical stem */}
+      <path
+        d="M5 15 L12 8 L19 15"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg className="home-chevron-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      {/* Pure geometric ∨ — no vertical stem */}
+      <path
+        d="M5 9 L12 16 L19 9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function HomePage() {
   const { profile } = useAuth()
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
@@ -35,18 +73,6 @@ export function HomePage() {
       setDeps(d.sort((a, b) => b.startedAt.localeCompare(a.startedAt)))
     })()
   }, [profile])
-
-  // Hide bottom nav while scenic landing is up (body class — survives Layout re-renders)
-  useEffect(() => {
-    if (layer === 'landing') {
-      document.body.classList.add('home-landing-active')
-    } else {
-      document.body.classList.remove('home-landing-active')
-    }
-    return () => {
-      document.body.classList.remove('home-landing-active')
-    }
-  }, [layer])
 
   const goDashboard = useCallback(() => setLayer('dashboard'), [])
   const goLanding = useCallback(() => setLayer('landing'), [])
@@ -111,36 +137,36 @@ export function HomePage() {
                 <span className="home-landing-sub-box">今天也请温柔对待自己</span>
               </p>
             </motion.div>
+
+            <motion.nav
+              className="home-landing-modules"
+              aria-label="入口模块"
+              initial={{ opacity: 0, y: 28 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.28 }}
+            >
+              {LANDING_MODULES.map((m) => (
+                <Link key={m.to} to={m.to} className="home-landing-module">
+                  <span className="home-landing-module-label">{m.label}</span>
+                  <span className="home-landing-module-hint">{m.hint}</span>
+                </Link>
+              ))}
+            </motion.nav>
           </div>
 
           <button
             type="button"
-            className="home-chevron-box"
+            className="home-chevron-box home-chevron-up"
             onClick={goDashboard}
             aria-label="进入首页"
           >
-            <svg
-              className="home-chevron-icon"
-              viewBox="0 0 24 24"
-              width="22"
-              height="22"
-              aria-hidden
-            >
-              {/* Pure geometric ∧ — no vertical stem */}
-              <path
-                d="M5 15 L12 8 L19 15"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <ChevronUpIcon />
           </button>
         </motion.div>
       ) : (
         <motion.div
           key="dashboard"
+          className="home-dashboard-layer"
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
@@ -148,31 +174,27 @@ export function HomePage() {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEndDashboard}
         >
-          <Page
-            title={`你好，${profile.name}`}
-            sub="今天也请温柔对待自己。"
-            actions={
+          <Page>
+            <div className="home-dash-chevron-wrap">
               <button
                 type="button"
-                className="home-back-scene"
+                className="home-chevron-box home-chevron-down"
                 onClick={goLanding}
                 aria-label="返回风景页"
               >
-                风景
+                <ChevronDownIcon />
               </button>
-            }
-          >
-            <Disclaimer />
+            </div>
 
             <div className="row home-cta-row" style={{ marginBottom: 14 }}>
               <Link to="/emotion" style={{ flex: 1 }}>
                 <Button block className="home-cta-btn">
-                  记录情绪
+                  倾听
                 </Button>
               </Link>
               <Link to="/body" style={{ flex: 1 }}>
                 <Button block variant="accent" className="home-cta-btn">
-                  身心打卡
+                  基石
                 </Button>
               </Link>
             </div>
@@ -238,6 +260,8 @@ export function HomePage() {
                 </div>
               )}
             </Card>
+
+            <Disclaimer />
           </Page>
         </motion.div>
       )}

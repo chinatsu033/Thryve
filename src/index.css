@@ -18,7 +18,6 @@
   --shadow-md: 0 8px 24px rgba(26, 26, 46, 0.08);
   --shadow-lg: 0 16px 48px rgba(26, 26, 46, 0.12);
   --font: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
-  --nav-h: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -74,11 +73,11 @@ p {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+  padding-bottom: calc(var(--safe-bottom) + 8px);
 }
 
 .app-shell.no-nav {
-  padding-bottom: 0;
+  padding-bottom: calc(var(--safe-bottom) + 8px);
 }
 
 .page {
@@ -271,48 +270,6 @@ p {
   font-weight: 800;
   color: var(--color-primary);
   text-align: center;
-}
-
-.bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: calc(var(--nav-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-around;
-  align-items: stretch;
-  z-index: 40;
-}
-
-.nav-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  font-size: 0.7rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 6px 2px;
-  transition: color 0.15s ease;
-}
-
-.nav-item.active {
-  color: var(--color-primary);
-}
-
-.nav-item .nav-icon {
-  font-size: 1.25rem;
-  line-height: 1;
 }
 
 .list {
@@ -548,7 +505,6 @@ p {
 }
 
 @media print {
-  .bottom-nav,
   .no-print,
   .btn {
     display: none !important;
@@ -750,14 +706,6 @@ p {
 }
 
 /* —— Home scenic landing (Layer 1) —— */
-body.home-landing-active .bottom-nav {
-  display: none;
-}
-
-body.home-landing-active .app-shell {
-  padding-bottom: 0;
-}
-
 .home-landing-layer {
   position: fixed;
   inset: 0;
@@ -786,9 +734,10 @@ body.home-landing-active .app-shell {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  padding: 0 28px calc(96px + var(--safe-bottom));
+  padding: 0 22px calc(96px + var(--safe-bottom));
   pointer-events: none;
   z-index: 1;
+  gap: 22px;
 }
 
 .home-landing-greet-wrap {
@@ -823,10 +772,51 @@ body.home-landing-active .app-shell {
   box-shadow: var(--shadow-sm);
 }
 
+.home-landing-modules {
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.home-landing-module {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 88px;
+  padding: 14px 8px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+  text-align: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.home-landing-module:active {
+  transform: scale(0.97);
+}
+
+.home-landing-module-label {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-primary);
+}
+
+.home-landing-module-hint {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .home-chevron-box {
-  position: absolute;
-  right: 18px;
-  bottom: calc(22px + var(--safe-bottom));
   z-index: 2;
   width: 52px;
   height: 52px;
@@ -845,6 +835,24 @@ body.home-landing-active .app-shell {
 
 .home-chevron-box:active {
   transform: scale(0.95);
+}
+
+.home-chevron-up {
+  position: absolute;
+  right: 18px;
+  bottom: calc(22px + var(--safe-bottom));
+}
+
+.home-dash-chevron-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 18px;
+}
+
+.home-chevron-down {
+  position: relative;
+  background: #fff;
+  border: 1px solid var(--color-border);
 }
 
 .home-chevron-icon {
@@ -868,15 +876,11 @@ body.home-landing-active .app-shell {
   width: 100%;
 }
 
-.home-back-scene {
-  border: 2px solid rgba(var(--color-primary-rgb), 0.28);
-  background: #fff;
-  color: var(--color-primary);
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
+.home-dashboard-layer {
+  touch-action: pan-y;
+}
+
+.home-dashboard-layer .disclaimer {
+  margin-top: 18px;
+  margin-bottom: 8px;
 }

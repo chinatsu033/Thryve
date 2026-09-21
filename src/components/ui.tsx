@@ -193,11 +193,12 @@ export function Page({
   children,
   actions,
 }: {
-  title: string
+  title?: string
   sub?: string
   children: ReactNode
   actions?: ReactNode
 }) {
+  const showHeader = Boolean(title || sub || actions)
   return (
     <motion.div
       className="page"
@@ -206,20 +207,22 @@ export function Page({
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: 0.25 }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: 12,
-        }}
-      >
-        <div>
-          <h1 className="page-title">{title}</h1>
-          {sub ? <p className="page-sub">{sub}</p> : <div style={{ height: 12 }} />}
+      {showHeader ? (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}
+        >
+          <div>
+            {title ? <h1 className="page-title">{title}</h1> : null}
+            {sub ? <p className="page-sub">{sub}</p> : title ? <div style={{ height: 12 }} /> : null}
+          </div>
+          {actions}
         </div>
-        {actions}
-      </div>
+      ) : null}
       {children}
     </motion.div>
   )
