@@ -121,7 +121,7 @@ function rowToEating(row: EatingRow): EatingEntry {
 
 export async function ensureProfile(userId: string, email: string, displayName?: string): Promise<Profile> {
   const sb = requireSupabase()
-  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle()
+  const { data, error } = await sb.from('thryve_profiles').select('*').eq('id', userId).maybeSingle()
   if (error) throw error
   if (data) return rowToProfile(data as ProfileRow, email)
 
@@ -130,14 +130,14 @@ export async function ensureProfile(userId: string, email: string, displayName?:
     display_name: displayName?.trim() || email.split('@')[0] || '用户',
     theme: DEFAULT_THEME,
   }
-  const { data: created, error: insertErr } = await sb.from('profiles').upsert(insert).select('*').single()
+  const { data: created, error: insertErr } = await sb.from('thryve_profiles').upsert(insert).select('*').single()
   if (insertErr) throw insertErr
   return rowToProfile(created as ProfileRow, email)
 }
 
 export async function getProfile(userId: string, email = ''): Promise<Profile | undefined> {
   const sb = requireSupabase()
-  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle()
+  const { data, error } = await sb.from('thryve_profiles').select('*').eq('id', userId).maybeSingle()
   if (error) throw error
   if (!data) return undefined
   return rowToProfile(data as ProfileRow, email)
@@ -145,7 +145,7 @@ export async function getProfile(userId: string, email = ''): Promise<Profile | 
 
 export async function saveProfile(profile: Profile): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('profiles').upsert({
+  const { error } = await sb.from('thryve_profiles').upsert({
     id: profile.id,
     display_name: profile.name,
     theme: profile.theme,
@@ -156,14 +156,14 @@ export async function saveProfile(profile: Profile): Promise<void> {
 
 export async function listEmotions(userId: string): Promise<EmotionEntry[]> {
   const sb = requireSupabase()
-  const { data, error } = await sb.from('emotions').select('*').eq('user_id', userId).order('recorded_at', { ascending: false })
+  const { data, error } = await sb.from('thryve_emotions').select('*').eq('user_id', userId).order('recorded_at', { ascending: false })
   if (error) throw error
   return (data as EmotionRow[] | null)?.map(rowToEmotion) ?? []
 }
 
 export async function putEmotion(e: EmotionEntry): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('emotions').upsert({
+  const { error } = await sb.from('thryve_emotions').upsert({
     id: e.id,
     user_id: e.profileId,
     mode: e.mode,
@@ -179,20 +179,20 @@ export async function putEmotion(e: EmotionEntry): Promise<void> {
 
 export async function deleteEmotion(id: string): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('emotions').delete().eq('id', id)
+  const { error } = await sb.from('thryve_emotions').delete().eq('id', id)
   if (error) throw error
 }
 
 export async function listSleeps(userId: string): Promise<SleepEntry[]> {
   const sb = requireSupabase()
-  const { data, error } = await sb.from('sleeps').select('*').eq('user_id', userId).order('date', { ascending: false })
+  const { data, error } = await sb.from('thryve_sleeps').select('*').eq('user_id', userId).order('date', { ascending: false })
   if (error) throw error
   return (data as SleepRow[] | null)?.map(rowToSleep) ?? []
 }
 
 export async function putSleep(e: SleepEntry): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('sleeps').upsert({
+  const { error } = await sb.from('thryve_sleeps').upsert({
     id: e.id,
     user_id: e.profileId,
     date: e.date,
@@ -208,20 +208,20 @@ export async function putSleep(e: SleepEntry): Promise<void> {
 
 export async function deleteSleep(id: string): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('sleeps').delete().eq('id', id)
+  const { error } = await sb.from('thryve_sleeps').delete().eq('id', id)
   if (error) throw error
 }
 
 export async function listEatings(userId: string): Promise<EatingEntry[]> {
   const sb = requireSupabase()
-  const { data, error } = await sb.from('eatings').select('*').eq('user_id', userId).order('date', { ascending: false })
+  const { data, error } = await sb.from('thryve_eatings').select('*').eq('user_id', userId).order('date', { ascending: false })
   if (error) throw error
   return (data as EatingRow[] | null)?.map(rowToEating) ?? []
 }
 
 export async function putEating(e: EatingEntry): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('eatings').upsert({
+  const { error } = await sb.from('thryve_eatings').upsert({
     id: e.id,
     user_id: e.profileId,
     date: e.date,
@@ -235,7 +235,7 @@ export async function putEating(e: EatingEntry): Promise<void> {
 
 export async function deleteEating(id: string): Promise<void> {
   const sb = requireSupabase()
-  const { error } = await sb.from('eatings').delete().eq('id', id)
+  const { error } = await sb.from('thryve_eatings').delete().eq('id', id)
   if (error) throw error
 }
 
@@ -323,8 +323,8 @@ export async function importIntoCurrentUser(
 export async function deleteAllUserData(userId: string): Promise<void> {
   const sb = requireSupabase()
   await Promise.all([
-    sb.from('emotions').delete().eq('user_id', userId),
-    sb.from('sleeps').delete().eq('user_id', userId),
-    sb.from('eatings').delete().eq('user_id', userId),
+    sb.from('thryve_emotions').delete().eq('user_id', userId),
+    sb.from('thryve_sleeps').delete().eq('user_id', userId),
+    sb.from('thryve_eatings').delete().eq('user_id', userId),
   ])
 }
