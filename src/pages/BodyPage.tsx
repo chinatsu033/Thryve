@@ -62,7 +62,7 @@ export function BodyPage() {
   return (
     <Page
       title="基石"
-      sub="睡眠、饮食与抑郁发作轻量打卡。"
+      sub="睡眠、饮食与情绪低谷轻量打卡。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         <Button className="btn-sm no-print" onClick={() => setModal(tab)}>
@@ -75,7 +75,7 @@ export function BodyPage() {
           [
             ['sleep', '睡眠'],
             ['eating', '饮食'],
-            ['depressive', '抑郁发作'],
+            ['depressive', '情绪低谷'],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -229,7 +229,7 @@ function DepList({
   onDelete: (id: string) => Promise<void>
   onEnd: (item: DepressiveEntry) => Promise<void>
 }) {
-  if (!items.length) return <Empty text="暂无抑郁发作记录" />
+  if (!items.length) return <Empty text="暂无情绪低谷记录" />
   return (
     <div className="list">
       {items.map((d) => (
@@ -385,7 +385,7 @@ function DepModal({
   const [busy, setBusy] = useState(false)
 
   return (
-    <Modal open={open} onClose={onClose} title="抑郁发作记录">
+    <Modal open={open} onClose={onClose} title="情绪低谷记录">
       <Field label="开始时间">
         <input type="datetime-local" value={startedAt} onChange={(e) => setStartedAt(e.target.value)} />
       </Field>

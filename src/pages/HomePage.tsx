@@ -239,7 +239,7 @@ export function HomePage() {
               ) : null}
               {openEp ? (
                 <p style={{ marginTop: 10, color: 'var(--color-danger)' }}>
-                  有进行中的抑郁发作记录（严重度 {openEp.severity}/10），可在「身心」页更新。
+                  有进行中的情绪低谷记录（严重度 {openEp.severity}/10），可在「基石」页更新。
                 </p>
               ) : null}
             </Card>

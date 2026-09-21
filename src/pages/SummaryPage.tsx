@@ -187,7 +187,7 @@ export function SummaryPage() {
       const avgSev =
         filteredDeps.reduce((a, b) => a + b.severity, 0) / filteredDeps.length
       lines.push(
-        `抑郁发作相关记录 ${filteredDeps.length} 条（进行中 ${open}），平均自报严重度 ${avgSev.toFixed(1)}/10。`,
+        `情绪低谷相关记录 ${filteredDeps.length} 条（进行中 ${open}），平均自报严重度 ${avgSev.toFixed(1)}/10。`,
       )
     }
     if (profile?.medicalHistory && !profile.medicalHistory.skipped) {
