@@ -9,14 +9,14 @@ const redirect = sessionStorage.getItem('ghpages-redirect')
 if (redirect) {
   sessionStorage.removeItem('ghpages-redirect')
   const url = new URL(redirect)
-  if (url.pathname.startsWith('/psych-state-journal')) {
+  if (url.pathname.startsWith('/Thryve')) {
     history.replaceState(null, '', url.pathname + url.search + url.hash)
   }
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter basename="/psych-state-journal">
+    <BrowserRouter basename="/Thryve">
       <AuthProvider>
         <App />
       </AuthProvider>

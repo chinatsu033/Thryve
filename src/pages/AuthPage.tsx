@@ -28,7 +28,7 @@ export function AuthPage() {
   }
 
   return (
-    <Page back={false} title="心理状态记录" sub="本地多档案 · 隐私优先 · 就医沟通助手">
+    <Page back={false} title="Thryve" sub="本地多档案 · 隐私优先 · 就医沟通助手">
       <Disclaimer />
       <Card>
         <div className="chip-row">
