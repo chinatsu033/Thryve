@@ -1073,6 +1073,15 @@ p {
   aspect-ratio: auto;
 }
 
+/* Date step: bias scene upward so cabin/well clear the date bar + CTA */
+.lodge-scene.lodge-scene-date .lodge-svg {
+  /* Extra bottom padding ~ overlay height; composition already shifted up in SVG */
+  object-fit: cover;
+  object-position: center 18%;
+  transform: translateY(-6%);
+  height: 112%;
+}
+
 .lodge-svg,
 .sea-svg {
   width: 100%;
@@ -1080,8 +1089,15 @@ p {
   display: block;
 }
 
+.lodge-sky-rect {
+  transition: fill 0.35s ease;
+}
+
 .sleep-overlay {
   gap: 12px;
+  /* Reserve clear bottom zone for date controls so scene art isn't covered */
+  padding-top: 28px;
+  min-height: 132px;
 }
 
 .sleep-date-input {
@@ -1228,6 +1244,38 @@ p {
 .lodge-smoke ellipse:nth-child(3) {
   animation-delay: 1.2s;
 }
+
+@keyframes lodge-leaf-drift {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0.35; }
+  50% { transform: translate(12px, 18px) rotate(40deg); opacity: 0.55; }
+  100% { transform: translate(22px, 36px) rotate(70deg); opacity: 0.1; }
+}
+
+.lodge-leaf {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lodge-leaf-drift 5.5s ease-in-out infinite;
+}
+
+.lodge-star {
+  transition: opacity 0.4s ease;
+}
+
+.lodge-clothes path {
+  animation: lodge-clothes-sway 3.2s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+@keyframes lodge-clothes-sway {
+  0% { transform: rotate(-3deg); }
+  100% { transform: rotate(4deg); }
+}
+
+.lodge-bike {
+  transition: opacity 0.35s ease;
+}
+
 
 @keyframes sea-boat-sway {
   0%, 100% { transform: rotate(-2deg) translateY(0); }

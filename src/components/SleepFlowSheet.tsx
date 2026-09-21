@@ -1,14 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import {
-  dayPartFromDate,
   dayPartFromHours,
   formatHm,
   hoursFromHm,
   parseHm,
   sleepBandFromContinuous,
   sleepQualityLabel,
-  type DayPart,
 } from '../lib/sleep'
 import type { SleepEntry } from '../types'
 import { AnalogClockPicker } from './AnalogClockPicker'
@@ -48,12 +46,19 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
   const [wakeH, setWakeH] = useState(8)
   const [wakeM, setWakeM] = useState(0)
 
-  const [nowPart, setNowPart] = useState<DayPart>(() => dayPartFromDate())
-  const [clockPart, setClockPart] = useState<DayPart>(() => dayPartFromHours(23))
+  const [nowHours, setNowHours] = useState(() => {
+    const d = new Date()
+    return d.getHours() + d.getMinutes() / 60
+  })
+  /** Continuous fractional hours driving lodge sky while clock-dragging. */
+  const [liveHours, setLiveHours] = useState(23)
 
   useEffect(() => {
     if (!open) return
-    const tick = () => setNowPart(dayPartFromDate())
+    const tick = () => {
+      const d = new Date()
+      setNowHours(d.getHours() + d.getMinutes() / 60)
+    }
     tick()
     const id = window.setInterval(tick, 60_000)
     return () => window.clearInterval(id)
@@ -72,7 +77,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
     setBedM(0)
     setWakeH(8)
     setWakeM(0)
-    setClockPart(dayPartFromHours(23))
+    setLiveHours(23)
     setBusy(false)
   }, [open])
 
@@ -80,14 +85,16 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
     setBedH(h)
     setBedM(m)
     setBedtime(formatHm(h, m))
-    setClockPart(dayPartFromHours(h + m / 60))
   }
 
   const syncWakeFromClock = (h: number, m: number) => {
     setWakeH(h)
     setWakeM(m)
     setWakeTime(formatHm(h, m))
-    setClockPart(dayPartFromHours(h + m / 60))
+  }
+
+  const onLiveHours = (hours: number) => {
+    setLiveHours(hours)
   }
 
   const startBed = () => {
@@ -95,7 +102,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
     setBedH(p.hour)
     setBedM(p.minute)
     setClockMode('hour')
-    setClockPart(dayPartFromHours(hoursFromHm(bedtime)))
+    setLiveHours(hoursFromHm(bedtime))
     setStep('bed')
   }
 
@@ -104,7 +111,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
     setWakeM(0)
     setWakeTime('08:00')
     setClockMode('hour')
-    setClockPart(dayPartFromHours(8))
+    setLiveHours(8)
     setStep('wake')
   }
 
@@ -125,7 +132,8 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
     }
   }
 
-  const scenePart = step === 'date' ? nowPart : step === 'bed' || step === 'wake' ? clockPart : nowPart
+  const sceneHours = step === 'date' ? nowHours : step === 'bed' || step === 'wake' ? liveHours : nowHours
+  const scenePart = dayPartFromHours(sceneHours)
 
   if (!open) return null
 
@@ -162,7 +170,11 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <ForestLodgeScene dayPart={scenePart} className="lodge-scene-card-fill" />
+                  <ForestLodgeScene
+                    dayPart={scenePart}
+                    hours={sceneHours}
+                    className="lodge-scene-card-fill lodge-scene-date"
+                  />
                   <div className="lake-overlay-controls sleep-overlay">
                     <input
                       type="date"
@@ -186,7 +198,11 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <ForestLodgeScene dayPart={scenePart} className="lodge-scene-card-fill" />
+                  <ForestLodgeScene
+                    dayPart={scenePart}
+                    hours={sceneHours}
+                    className="lodge-scene-card-fill"
+                  />
                   <div className="sleep-clock-overlay">
                     <AnalogClockPicker
                       hour={bedH}
@@ -195,6 +211,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       chip="入睡"
                       onHourChange={(h) => syncBedFromClock(h, bedM)}
                       onMinuteChange={(m) => syncBedFromClock(bedH, m)}
+                      onLiveHoursChange={onLiveHours}
                       onHourCommit={() => setClockMode('minute')}
                       onMinuteCommit={() => startWake()}
                     />
@@ -210,7 +227,11 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <ForestLodgeScene dayPart={scenePart} className="lodge-scene-card-fill" />
+                  <ForestLodgeScene
+                    dayPart={scenePart}
+                    hours={sceneHours}
+                    className="lodge-scene-card-fill"
+                  />
                   <div className="sleep-clock-overlay">
                     <AnalogClockPicker
                       hour={wakeH}
@@ -219,6 +240,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       chip="起床"
                       onHourChange={(h) => syncWakeFromClock(h, wakeM)}
                       onMinuteChange={(m) => syncWakeFromClock(wakeH, m)}
+                      onLiveHoursChange={onLiveHours}
                       onHourCommit={() => setClockMode('minute')}
                       onMinuteCommit={() => setStep('feel')}
                     />

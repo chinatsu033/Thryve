@@ -12,6 +12,11 @@ type Props = {
   onMinuteChange: (m: number) => void
   onHourCommit: () => void
   onMinuteCommit: () => void
+  /**
+   * Continuous fractional hours (0–24) while dragging — every pointer move.
+   * Use for live sky/scene updates; snapped hour/minute still go through onHour/MinuteChange.
+   */
+  onLiveHoursChange?: (hours: number) => void
   chip?: string
 }
 
@@ -23,22 +28,30 @@ const INNER_R = 72
 const MINUTE_R = 100
 
 function angleToHour24(angleRad: number, radius: number): number {
-  // 0 at top, clockwise
   let deg = ((angleRad * 180) / Math.PI + 90 + 360) % 360
   const outer = radius >= (OUTER_R + INNER_R) / 2
-  // 12 positions: each 30°
   const idx = Math.round(deg / 30) % 12
-  if (outer) {
-    // outer: 0–11 (0 at top)
-    return idx
-  }
-  // inner: 12–23
+  if (outer) return idx
   return idx === 0 ? 12 : idx + 12
+}
+
+/** Continuous 0–24h from angle (no snap) for live background. */
+function angleToHour24Continuous(angleRad: number, radius: number): number {
+  let deg = ((angleRad * 180) / Math.PI + 90 + 360) % 360
+  const outer = radius >= (OUTER_R + INNER_R) / 2
+  const pos = deg / 30 // 0..12
+  if (outer) return pos % 12
+  return pos === 0 ? 12 : pos + 12
 }
 
 function angleToMinute(angleRad: number): number {
   let deg = ((angleRad * 180) / Math.PI + 90 + 360) % 360
   return Math.round(deg / 6) % 60
+}
+
+function angleToMinuteContinuous(angleRad: number): number {
+  let deg = ((angleRad * 180) / Math.PI + 90 + 360) % 360
+  return (deg / 6) % 60
 }
 
 function hourPos(h: number): { x: number; y: number; r: number } {
@@ -62,21 +75,25 @@ export function AnalogClockPicker({
   onMinuteChange,
   onHourCommit,
   onMinuteCommit,
+  onLiveHoursChange,
   chip,
 }: Props) {
   const svgRef = useRef<SVGSVGElement>(null)
   const dragging = useRef(false)
+  const hourRef = useRef(hour)
+  const minuteRef = useRef(minute)
   const [liveHour, setLiveHour] = useState(hour)
   const [liveMinute, setLiveMinute] = useState(minute)
 
   useEffect(() => {
+    hourRef.current = hour
     if (!dragging.current) setLiveHour(hour)
   }, [hour])
   useEffect(() => {
+    minuteRef.current = minute
     if (!dragging.current) setLiveMinute(minute)
   }, [minute])
 
-  // Map client coords to viewBox
   const pointerToLocal = useCallback((clientX: number, clientY: number) => {
     const el = svgRef.current
     if (!el) return { angle: 0, radius: OUTER_R }
@@ -90,16 +107,22 @@ export function AnalogClockPicker({
     (clientX: number, clientY: number) => {
       const { angle, radius } = pointerToLocal(clientX, clientY)
       if (mode === 'hour') {
-        const h = angleToHour24(angle, radius)
-        setLiveHour(h)
-        onHourChange(h)
+        const hSnap = angleToHour24(angle, radius)
+        const hCont = angleToHour24Continuous(angle, radius)
+        setLiveHour(hSnap)
+        hourRef.current = hSnap
+        onHourChange(hSnap)
+        onLiveHoursChange?.(hCont + minuteRef.current / 60)
       } else {
-        const m = angleToMinute(angle)
-        setLiveMinute(m)
-        onMinuteChange(m)
+        const mSnap = angleToMinute(angle)
+        const mCont = angleToMinuteContinuous(angle)
+        setLiveMinute(mSnap)
+        minuteRef.current = mSnap
+        onMinuteChange(mSnap)
+        onLiveHoursChange?.(hourRef.current + mCont / 60)
       }
     },
-    [mode, onHourChange, onMinuteChange, pointerToLocal],
+    [mode, onHourChange, onMinuteChange, onLiveHoursChange, pointerToLocal],
   )
 
   const onPointerDown = (e: ReactPointerEvent) => {
@@ -167,7 +190,6 @@ export function AnalogClockPicker({
         <circle cx={CX} cy={CY} r={OUTER_R + 14} fill="rgba(255,255,255,0.18)" />
         <circle cx={CX} cy={CY} r={OUTER_R + 14} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
 
-        {/* Hand */}
         <line
           x1={CX}
           y1={CY}
