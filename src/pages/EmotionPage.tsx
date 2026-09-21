@@ -9,6 +9,12 @@ import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
 import { deleteEmotion, listEmotions, putEmotion } from '../lib/db'
 import {
+  backdropFade,
+  listItemMotion,
+  sheetEnter,
+  stepFade,
+} from '../lib/motion'
+import {
   EMOTION_SOURCE_WORDS,
   emotionWordsForMood,
   moodSoftLabel,
@@ -145,9 +151,7 @@ export function EmotionPage() {
                 key={e.id}
                 className="list-item"
                 layout
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
+                {...listItemMotion}
               >
                 <div>
                   <strong style={{ color: 'var(--color-primary)' }}>{displayLabel(e)}</strong>
@@ -191,9 +195,7 @@ export function EmotionPage() {
         {open ? (
           <motion.div
             className="flow-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...backdropFade}
             role="presentation"
           >
             <motion.div
@@ -201,10 +203,7 @@ export function EmotionPage() {
               role="dialog"
               aria-modal="true"
               aria-label="记录情绪"
-              initial={{ y: '100%', opacity: 0.85 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '40%', opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+              {...sheetEnter}
             >
               <button type="button" className="flow-close" onClick={closeFlow} aria-label="关闭">
                 ✕
@@ -215,9 +214,7 @@ export function EmotionPage() {
                   <motion.div
                     key="mood"
                     className="flow-body flow-body-lake"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    {...stepFade}
                   >
                     <LakeMoodScene mood={mood} className="lake-scene-card-fill" />
                     <div className="lake-overlay-controls">
@@ -251,9 +248,7 @@ export function EmotionPage() {
                   <motion.div
                     key="words"
                     className="flow-body"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
+                    {...stepFade}
                   >
                     <h2 className="flow-title">用词语形容</h2>
                     <p className="flow-sub">可多选，也可写下自己的词。</p>
@@ -313,9 +308,7 @@ export function EmotionPage() {
                   <motion.div
                     key="source"
                     className="flow-body"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
+                    {...stepFade}
                   >
                     <h2 className="flow-title">它从哪里来</h2>
                     <p className="flow-sub">选择或写下感受的来源。</p>

@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { backdropFade, sheetEnter, stepFade } from '../lib/motion'
 import { useEffect, useState } from 'react'
 import {
   dayPartFromHours,
@@ -142,9 +143,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
       {open ? (
         <motion.div
           className="flow-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          {...backdropFade}
           role="presentation"
         >
           <motion.div
@@ -152,10 +151,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label="睡眠记录"
-            initial={{ y: '100%', opacity: 0.85 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '40%', opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            {...sheetEnter}
           >
             <button type="button" className="flow-close" onClick={onClose} aria-label="关闭">
               ✕
@@ -166,9 +162,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 <motion.div
                   key="date"
                   className="flow-body flow-body-lake"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  {...stepFade}
                 >
                   <ForestLodgeScene
                     dayPart={scenePart}
@@ -194,9 +188,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 <motion.div
                   key="bed"
                   className="flow-body flow-body-lake"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  {...stepFade}
                 >
                   <ForestLodgeScene
                     dayPart={scenePart}
@@ -223,9 +215,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 <motion.div
                   key="wake"
                   className="flow-body flow-body-lake"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  {...stepFade}
                 >
                   <ForestLodgeScene
                     dayPart={scenePart}
@@ -252,9 +242,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 <motion.div
                   key="feel"
                   className="flow-body flow-body-lake"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  {...stepFade}
                 >
                   <SeaBoatScene quality={feel} className="sea-scene-card-fill" />
                   <div className="sleep-feel-label" aria-live="polite">
@@ -287,9 +275,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 <motion.div
                   key="notes"
                   className="flow-body flow-body-lake"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                  {...stepFade}
                 >
                   <SeaBoatScene quality={feel} className="sea-scene-card-fill" />
                   <div className="lake-overlay-controls sleep-overlay sleep-notes-overlay">

@@ -6,11 +6,12 @@ import { Link, useLocation } from 'react-router-dom'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { listDepressives, listEatings, listEmotions, listSleeps } from '../lib/db'
+import { listEatings, listEmotions, listSleeps } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import { appetiteLabel } from '../lib/eating'
+import { easeOutSoft, layerTransition } from '../lib/motion'
 import { sleepQualityLabel } from '../lib/sleep'
-import type { DepressiveEntry, EatingEntry, EmotionEntry, SleepEntry } from '../types'
+import type { EatingEntry, EmotionEntry, SleepEntry } from '../types'
 
 type Layer = 'landing' | 'dashboard'
 
@@ -86,7 +87,6 @@ export function HomePage() {
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
-  const [deps, setDeps] = useState<DepressiveEntry[]>([])
   const [layer, setLayer] = useState<Layer>(() =>
     layerFromLocation(location.search, location.state),
   )
@@ -100,16 +100,14 @@ export function HomePage() {
   useEffect(() => {
     if (!profile) return
     void (async () => {
-      const [e, s, ea, d] = await Promise.all([
+      const [e, s, ea] = await Promise.all([
         listEmotions(profile.id),
         listSleeps(profile.id),
         listEatings(profile.id),
-        listDepressives(profile.id),
       ])
       setEmotions(e.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt)))
       setSleeps(s.sort((a, b) => b.date.localeCompare(a.date)))
       setEatings(ea.sort((a, b) => b.date.localeCompare(a.date)))
-      setDeps(d.sort((a, b) => b.startedAt.localeCompare(a.startedAt)))
     })()
   }, [profile])
 
@@ -145,7 +143,6 @@ export function HomePage() {
   const latestMood = emotions[0]
   const latestSleep = sleeps[0]
   const latestEating = eatings[0]
-  const openEp = deps.find((d) => !d.endedAt)
   const sceneMood = latestMood ? normalizeMood(latestMood.mood, latestMood) : 50
 
   const labelFor = (e: EmotionEntry) => moodSoftLabel(normalizeMood(e.mood, e))
@@ -159,7 +156,7 @@ export function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, y: -40 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+          transition={layerTransition}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEndLanding}
         >
@@ -170,7 +167,7 @@ export function HomePage() {
               className="home-landing-greet-wrap"
               initial={{ opacity: 0, y: 72 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.12 }}
+              transition={{ duration: 0.55, ease: easeOutSoft, delay: 0.1 }}
             >
               <h1 className="home-landing-greet">你好，{profile.name}</h1>
               <p className="home-landing-sub">
@@ -196,7 +193,7 @@ export function HomePage() {
           initial={{ opacity: 0, y: 48 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 32 }}
-          transition={{ duration: 0.35, ease: 'easeOut' }}
+          transition={layerTransition}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEndDashboard}
         >
@@ -247,11 +244,6 @@ export function HomePage() {
                 <p style={{ marginTop: 10 }}>
                   最近饮食：<strong>{appetiteLabel(latestEating.appetite)}</strong>
                   <span className="hint"> · {latestEating.date}</span>
-                </p>
-              ) : null}
-              {openEp ? (
-                <p style={{ marginTop: 10, color: 'var(--color-danger)' }}>
-                  有进行中的情绪低谷记录（严重度 {openEp.severity}/10），可在「基石」页更新。
                 </p>
               ) : null}
             </Card>

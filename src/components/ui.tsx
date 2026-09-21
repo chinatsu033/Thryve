@@ -6,6 +6,13 @@ import {
   useEffect,
 } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  backdropFade,
+  cardMotion,
+  pageMotion,
+  sheetEnter,
+  tapSpring,
+} from '../lib/motion'
 
 export function Card({
   children,
@@ -19,9 +26,7 @@ export function Card({
   return (
     <motion.div
       className={`card ${className}`}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: 'easeOut' }}
+      {...cardMotion}
     >
       {title ? <h3 className="card-title">{title}</h3> : null}
       {children}
@@ -57,7 +62,7 @@ export function Button({
       className={`btn btn-${variant} ${block ? 'btn-block' : ''} ${className}`}
       whileTap={{ scale: 0.97 }}
       whileHover={{ scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 22 }}
+      transition={tapSpring}
     >
       {children}
     </motion.button>
@@ -157,9 +162,7 @@ export function Modal({
       {open ? (
         <motion.div
           className="modal-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          {...backdropFade}
           onClick={onClose}
           role="presentation"
         >
@@ -168,10 +171,7 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            initial={{ y: '100%', opacity: 0.6 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '40%', opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+            {...sheetEnter}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sheet-handle" aria-hidden />
@@ -241,10 +241,7 @@ export function Page({
   return (
     <motion.div
       className="page"
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -12 }}
-      transition={{ duration: 0.25 }}
+      {...pageMotion}
     >
       {showBack ? (
         <button

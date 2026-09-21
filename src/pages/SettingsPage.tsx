@@ -73,7 +73,7 @@ export function SettingsPage() {
 
   const doDelete = async () => {
     if (!confirm(`确定永久删除档案「${profile.name}」及全部本地数据？此操作不可恢复。`)) return
-    if (!confirm('再次确认：将删除情绪、睡眠、饮食、发作与附件数据。')) return
+    if (!confirm('再次确认：将删除情绪、睡眠、饮食与附件等本地数据。')) return
     await deleteProfileData(profile.id)
     await logout()
     await refreshProfiles()

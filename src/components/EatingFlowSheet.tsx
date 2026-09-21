@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import { backdropFade, sheetEnter } from '../lib/motion'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
 import {
@@ -51,9 +52,7 @@ export function EatingFlowSheet({ open, onClose, onSave }: Props) {
       {open ? (
         <motion.div
           className="flow-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          {...backdropFade}
           role="presentation"
         >
           <motion.div
@@ -61,10 +60,7 @@ export function EatingFlowSheet({ open, onClose, onSave }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label="饮食记录"
-            initial={{ y: '100%', opacity: 0.85 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: '40%', opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+            {...sheetEnter}
           >
             <button type="button" className="flow-close" onClick={onClose} aria-label="关闭">
               ✕

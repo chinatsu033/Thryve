@@ -20,18 +20,17 @@ import {
   deleteAttachment,
   getAttachmentBlob,
   listAttachments,
-  listDepressives,
   listEatings,
   listEmotions,
   listSleeps,
   saveAttachment,
 } from '../lib/db'
+import { chartEnter } from '../lib/motion'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import { appetiteLabel, normalizeAppetite } from '../lib/eating'
 import { normalizeSleepQuality, sleepQualityLabel } from '../lib/sleep'
 import type {
   AttachmentMeta,
-  DepressiveEntry,
   EatingEntry,
   EmotionEntry,
   SleepEntry,
@@ -61,24 +60,21 @@ export function SummaryPage() {
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
-  const [deps, setDeps] = useState<DepressiveEntry[]>([])
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [copyOk, setCopyOk] = useState(false)
 
   const reload = useCallback(async () => {
     if (!profile) return
-    const [e, s, ea, d, a] = await Promise.all([
+    const [e, s, ea, a] = await Promise.all([
       listEmotions(profile.id),
       listSleeps(profile.id),
       listEatings(profile.id),
-      listDepressives(profile.id),
       listAttachments(profile.id),
     ])
     setEmotions(e)
     setSleeps(s)
     setEatings(ea)
-    setDeps(d)
     setAttachments(a.sort((x, y) => y.createdAt.localeCompare(x.createdAt)))
     const urls: Record<string, string> = {}
     for (const meta of a) {
@@ -123,15 +119,6 @@ export function SummaryPage() {
     () => eatings.filter((e) => isWithinInterval(parseISO(e.date), interval)),
     [eatings, interval],
   )
-  const filteredDeps = useMemo(
-    () =>
-      deps.filter((d) => {
-        const start = parseISO(d.startedAt)
-        return isWithinInterval(start, interval) || (d.endedAt ? isWithinInterval(parseISO(d.endedAt), interval) : !d.endedAt)
-      }),
-    [deps, interval],
-  )
-
   const chartData = useMemo(() => {
     const days = eachDayOfInterval(interval)
     return days.map((day) => {
@@ -190,17 +177,9 @@ export function SummaryPage() {
         `饮食记录 ${filteredEatings.length} 天，平均约「${appetiteLabel(avgA)}」（1–5 均 ${avgA.toFixed(1)}）。`,
       )
     }
-    if (filteredDeps.length) {
-      const open = filteredDeps.filter((d) => !d.endedAt).length
-      const avgSev =
-        filteredDeps.reduce((a, b) => a + b.severity, 0) / filteredDeps.length
-      lines.push(
-        `情绪低谷相关记录 ${filteredDeps.length} 条（进行中 ${open}），平均自报严重度 ${avgSev.toFixed(1)}/10。`,
-      )
-    }
     lines.push('说明：以上为个人主观记录汇总，不能替代专业诊断。')
     return lines
-  }, [filteredEmotions, filteredSleeps, filteredEatings, filteredDeps, profile])
+  }, [filteredEmotions, filteredSleeps, filteredEatings, profile])
 
   const summaryText = useMemo(() => {
     const from = format(interval.start, 'yyyy-MM-dd')
@@ -266,7 +245,7 @@ export function SummaryPage() {
   return (
     <Page
       title="心迹"
-      sub="按区间汇总情绪、睡眠与发作记录，便于就诊沟通。"
+      sub="按区间汇总情绪、睡眠与饮食记录，便于就诊沟通。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
     >
       <Disclaimer />
@@ -322,9 +301,7 @@ export function SummaryPage() {
           <Empty text="本区间暂无图表数据" />
         ) : (
           <motion.div
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
+            {...chartEnter}
             style={{ width: '100%', height: 280 }}
           >
             <ResponsiveContainer>
