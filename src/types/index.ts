@@ -65,7 +65,9 @@ export interface EatingEntry {
   createdAt: string
 }
 
-/** reminderTimes: local HH:mm. daysOfWeek null/[] = every day (0=Sun..6=Sat). */
+/** reminderTimes: local HH:mm. daysOfWeek null/[] = no weekday filter (0=Sun..6=Sat).
+ * intervalDays: 1=每天, 2=隔天, 3=每两天 … from anchorDate.
+ */
 export interface Medication {
   id: string
   profileId: string
@@ -74,6 +76,10 @@ export interface Medication {
   notes: string
   reminderTimes: string[]
   daysOfWeek: number[] | null
+  /** Every N calendar days from anchorDate (1 = daily). */
+  intervalDays: number
+  /** yyyy-MM-dd anchor for interval cycles. */
+  anchorDate: string
   color: string | null
   enabled: boolean
   createdAt: string

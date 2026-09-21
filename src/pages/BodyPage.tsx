@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EatingFlowSheet } from '../components/EatingFlowSheet'
-import { MedsPanel } from '../components/MedsPanel'
+import { MedGlowCalendar } from '../components/MedGlowCalendar'
 import { SleepFlowSheet } from '../components/SleepFlowSheet'
 import { Button, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -95,7 +95,14 @@ export function BodyPage() {
               }}
             />
           ) : null}
-          {tab === 'meds' ? <MedsPanel userId={profile.id} /> : null}
+          {tab === 'meds' ? (
+            <>
+              <p className="hint" style={{ marginBottom: 10 }}>
+                首页「微光日历」为主要入口；此处可管理药品与打卡。
+              </p>
+              <MedGlowCalendar userId={profile.id} defaultExpanded showManageList />
+            </>
+          ) : null}
         </motion.div>
       </AnimatePresence>
 

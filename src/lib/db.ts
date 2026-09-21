@@ -75,6 +75,8 @@ type MedicationRow = {
   notes: string | null
   reminder_times: string[] | null
   days_of_week: number[] | null
+  interval_days: number | null
+  anchor_date: string | null
   color: string | null
   enabled: boolean
   created_at: string
@@ -145,6 +147,7 @@ function rowToEating(row: EatingRow): EatingEntry {
 }
 
 function rowToMedication(row: MedicationRow): Medication {
+  const createdDay = row.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10)
   return {
     id: row.id,
     profileId: row.user_id,
@@ -153,6 +156,8 @@ function rowToMedication(row: MedicationRow): Medication {
     notes: row.notes ?? '',
     reminderTimes: row.reminder_times ?? [],
     daysOfWeek: row.days_of_week,
+    intervalDays: Math.max(1, row.interval_days ?? 1),
+    anchorDate: row.anchor_date || createdDay,
     color: row.color,
     enabled: row.enabled,
     createdAt: row.created_at,
@@ -315,6 +320,8 @@ export async function putMedication(m: Medication): Promise<void> {
     notes: m.notes ?? '',
     reminder_times: m.reminderTimes ?? [],
     days_of_week: m.daysOfWeek,
+    interval_days: Math.max(1, m.intervalDays ?? 1),
+    anchor_date: m.anchorDate || m.createdAt.slice(0, 10),
     color: m.color,
     enabled: m.enabled,
     created_at: m.createdAt,

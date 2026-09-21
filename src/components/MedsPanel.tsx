@@ -50,6 +50,8 @@ type MedForm = {
   notes: string
   reminderTimes: string[]
   daysOfWeek: number[] | null
+  intervalDays: number
+  anchorDate: string
   color: string
   enabled: boolean
 }
@@ -60,6 +62,8 @@ const emptyForm = (): MedForm => ({
   notes: '',
   reminderTimes: ['08:00'],
   daysOfWeek: null,
+  intervalDays: 1,
+  anchorDate: new Date().toISOString().slice(0, 10),
   color: '#FF8A65',
   enabled: true,
 })
@@ -71,6 +75,8 @@ function formFromMed(m: Medication): MedForm {
     notes: m.notes,
     reminderTimes: m.reminderTimes.length ? [...m.reminderTimes] : ['08:00'],
     daysOfWeek: m.daysOfWeek == null || m.daysOfWeek.length === 0 ? null : [...m.daysOfWeek],
+    intervalDays: Math.max(1, m.intervalDays ?? 1),
+    anchorDate: m.anchorDate || m.createdAt.slice(0, 10),
     color: m.color || '#FF8A65',
     enabled: m.enabled,
   }
@@ -167,6 +173,8 @@ export function MedsPanel({ userId }: { userId: string }) {
               notes: form.notes.trim(),
               reminderTimes: times,
               daysOfWeek: form.daysOfWeek,
+              intervalDays: form.intervalDays,
+              anchorDate: form.anchorDate,
               color: form.color || null,
               enabled: form.enabled,
               updatedAt: nowIso,
@@ -179,6 +187,8 @@ export function MedsPanel({ userId }: { userId: string }) {
               notes: form.notes.trim(),
               reminderTimes: times,
               daysOfWeek: form.daysOfWeek,
+              intervalDays: form.intervalDays,
+              anchorDate: form.anchorDate,
               color: form.color || null,
               enabled: form.enabled,
               createdAt: nowIso,

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { EmotionFlowSheet } from '../components/EmotionFlowSheet'
+import { MedGlowCalendar } from '../components/MedGlowCalendar'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -390,6 +391,8 @@ export function HomePage() {
                 </Link>
               ))}
             </nav>
+
+            <MedGlowCalendar userId={profile.id} />
 
             <Card title="今日速览">
               {latestMood ? (

@@ -1638,3 +1638,189 @@ p {
 .med-dose-row {
   align-items: center;
 }
+
+/* —— 微光日历 (Home Layer 2) —— */
+.med-glow {
+  margin: 0 0 14px;
+}
+.med-glow-card {
+  background: var(--color-card, #fff);
+  border-radius: var(--radius-md, 16px);
+  padding: 12px 12px 6px;
+  box-shadow: 0 1px 0 rgba(26, 26, 46, 0.04);
+}
+.med-glow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.med-glow-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
+}
+.med-glow-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-full, 999px);
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.med-glow-dots:active {
+  background: rgba(0, 0, 0, 0.04);
+}
+.med-glow-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 4px;
+  padding: 6px 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.med-glow-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 112px;
+  padding: 20px 16px;
+  border: none;
+  border-radius: var(--radius-md, 16px);
+  background: var(--color-card, #fff);
+  box-shadow: 0 1px 0 rgba(26, 26, 46, 0.04);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--color-primary);
+}
+.med-glow-empty-card:active {
+  transform: scale(0.985);
+}
+.med-glow-empty-plus {
+  font-size: 2.4rem;
+  font-weight: 300;
+  line-height: 1;
+}
+.med-glow-empty-caption {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.med-strip-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.med-strip-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 6px;
+  border: none;
+  border-radius: var(--radius-sm, 12px);
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--color-text);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.med-strip-day.is-today {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.med-strip-day.mark-taken {
+  background: rgba(67, 160, 71, 0.14);
+}
+.med-strip-day.mark-partial {
+  background: rgba(255, 152, 0, 0.14);
+}
+.med-strip-day.mark-missed {
+  background: rgba(198, 40, 40, 0.12);
+}
+.med-strip-day.mark-planned {
+  background: rgba(var(--color-primary-rgb, 255, 138, 101), 0.12);
+}
+.med-strip-dow {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+.med-strip-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.med-strip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  margin: 2px 0;
+}
+.med-strip-dot.mark-taken {
+  background: #43a047;
+}
+.med-strip-dot.mark-partial {
+  background: #fb8c00;
+}
+.med-strip-dot.mark-missed {
+  background: #c62828;
+}
+.med-strip-dot.mark-planned {
+  background: var(--color-primary);
+}
+.med-strip-status {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+.med-cal-cell.is-today .med-cal-num {
+  color: var(--color-primary);
+}
+.med-common-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  max-height: calc(3 * 36px + 2 * 8px);
+  overflow-y: auto;
+}
+.med-common-chip {
+  justify-content: center;
+  text-align: center;
+  padding: 6px 4px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.med-freq-row {
+  flex-wrap: wrap;
+}
+.med-glow-list {
+  margin-top: 14px;
+}
+.med-edit-card .field {
+  margin-bottom: 12px;
+}
+@media (max-width: 360px) {
+  .med-common-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: calc(3 * 36px + 2 * 8px);
+  }
+}
