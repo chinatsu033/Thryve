@@ -6,10 +6,11 @@ import { Link, useLocation } from 'react-router-dom'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { listDepressives, listEmotions, listSleeps } from '../lib/db'
+import { listDepressives, listEatings, listEmotions, listSleeps } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
+import { appetiteLabel } from '../lib/eating'
 import { sleepQualityLabel } from '../lib/sleep'
-import type { DepressiveEntry, EmotionEntry, SleepEntry } from '../types'
+import type { DepressiveEntry, EatingEntry, EmotionEntry, SleepEntry } from '../types'
 
 type Layer = 'landing' | 'dashboard'
 
@@ -84,6 +85,7 @@ export function HomePage() {
   const location = useLocation()
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
+  const [eatings, setEatings] = useState<EatingEntry[]>([])
   const [deps, setDeps] = useState<DepressiveEntry[]>([])
   const [layer, setLayer] = useState<Layer>(() =>
     layerFromLocation(location.search, location.state),
@@ -98,13 +100,15 @@ export function HomePage() {
   useEffect(() => {
     if (!profile) return
     void (async () => {
-      const [e, s, d] = await Promise.all([
+      const [e, s, ea, d] = await Promise.all([
         listEmotions(profile.id),
         listSleeps(profile.id),
+        listEatings(profile.id),
         listDepressives(profile.id),
       ])
       setEmotions(e.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt)))
       setSleeps(s.sort((a, b) => b.date.localeCompare(a.date)))
+      setEatings(ea.sort((a, b) => b.date.localeCompare(a.date)))
       setDeps(d.sort((a, b) => b.startedAt.localeCompare(a.startedAt)))
     })()
   }, [profile])
@@ -140,6 +144,7 @@ export function HomePage() {
 
   const latestMood = emotions[0]
   const latestSleep = sleeps[0]
+  const latestEating = eatings[0]
   const openEp = deps.find((d) => !d.endedAt)
   const sceneMood = latestMood ? normalizeMood(latestMood.mood, latestMood) : 50
 
@@ -236,6 +241,12 @@ export function HomePage() {
                 <p style={{ marginTop: 10 }}>
                   最近睡眠：<strong>{sleepQualityLabel(latestSleep.quality)}</strong>
                   <span className="hint"> · {latestSleep.date}</span>
+                </p>
+              ) : null}
+              {latestEating ? (
+                <p style={{ marginTop: 10 }}>
+                  最近饮食：<strong>{appetiteLabel(latestEating.appetite)}</strong>
+                  <span className="hint"> · {latestEating.date}</span>
                 </p>
               ) : null}
               {openEp ? (

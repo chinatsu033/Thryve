@@ -3,10 +3,12 @@ import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { EatingFlowSheet } from '../components/EatingFlowSheet'
 import { SleepFlowSheet } from '../components/SleepFlowSheet'
 import { Button, Empty, Field, Modal, MoodSlider, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
+import { appetiteLabel, normalizeAppetite } from '../lib/eating'
 import { sleepQualityLabel } from '../lib/sleep'
 import {
   deleteDepressive,
@@ -29,10 +31,6 @@ import {
 } from '../types'
 
 type Tab = 'sleep' | 'eating' | 'depressive'
-
-function todayStr() {
-  return format(new Date(), 'yyyy-MM-dd')
-}
 
 export function BodyPage() {
   const { profile } = useAuth()
@@ -141,7 +139,7 @@ export function BodyPage() {
           await reload()
         }}
       />
-      <EatingModal
+      <EatingFlowSheet
         open={modal === 'eating'}
         onClose={() => setModal(null)}
         onSave={async (entry) => {
@@ -209,7 +207,8 @@ function EatingList({
       {items.map((e) => (
         <div key={e.id} className="list-item">
           <div>
-            <strong>{e.date}</strong> · 约 {e.meals} 餐 · 食欲 {e.appetite}/10
+            <strong>{e.date}</strong> · {appetiteLabel(e.appetite)}
+            <div className="hint">约 {e.meals} 餐 · 食欲 {normalizeAppetite(e.appetite)}/5</div>
             {e.notes ? <p style={{ margin: '6px 0 0' }}>{e.notes}</p> : null}
           </div>
           <Button variant="ghost" className="btn-sm" onClick={() => void onDelete(e.id)}>
@@ -267,47 +266,6 @@ function DepList({
         </div>
       ))}
     </div>
-  )
-}
-
-function EatingModal({
-  open,
-  onClose,
-  onSave,
-}: {
-  open: boolean
-  onClose: () => void
-  onSave: (e: Omit<EatingEntry, 'id' | 'profileId' | 'createdAt'>) => Promise<void>
-}) {
-  const [date, setDate] = useState(todayStr())
-  const [meals, setMeals] = useState(3)
-  const [appetite, setAppetite] = useState(5)
-  const [notes, setNotes] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  return (
-    <Modal open={open} onClose={onClose} title="饮食记录">
-      <Field label="日期">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </Field>
-      <Field label="大致餐次">
-        <input type="number" min={0} max={10} value={meals} onChange={(e) => setMeals(Number(e.target.value))} />
-      </Field>
-      <MoodSlider value={appetite} onChange={setAppetite} label="食欲（1–10）" />
-      <Field label="备注">
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="进食情况、回避食物等" />
-      </Field>
-      <Button
-        block
-        disabled={busy}
-        onClick={() => {
-          setBusy(true)
-          void onSave({ date, meals, appetite, notes: notes.trim() }).finally(() => setBusy(false))
-        }}
-      >
-        保存
-      </Button>
-    </Modal>
   )
 }
 

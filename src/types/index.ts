@@ -52,6 +52,7 @@ export interface SleepEntry {
   createdAt: string
 }
 
+/** appetite: 1–5 (闭塞→饱满); legacy rows may still be 1–10. meals derived from appetite on new saves. */
 export interface EatingEntry {
   id: string
   profileId: string

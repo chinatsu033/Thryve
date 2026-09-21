@@ -27,6 +27,7 @@ import {
   saveAttachment,
 } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
+import { appetiteLabel, normalizeAppetite } from '../lib/eating'
 import { normalizeSleepQuality, sleepQualityLabel } from '../lib/sleep'
 import type {
   AttachmentMeta,
@@ -151,7 +152,7 @@ export function SummaryPage() {
         full: key,
         mood: avgMood,
         sleep: sleep ? normalizeSleepQuality(sleep.quality) : null,
-        appetite: eating?.appetite ?? null,
+        appetite: eating ? normalizeAppetite(eating.appetite) : null,
       }
     })
   }, [interval, filteredEmotions, filteredSleeps, filteredEatings])
@@ -183,8 +184,11 @@ export function SummaryPage() {
     }
     if (filteredEatings.length) {
       const avgA =
-        filteredEatings.reduce((a, b) => a + b.appetite, 0) / filteredEatings.length
-      lines.push(`饮食记录 ${filteredEatings.length} 天，平均食欲 ${avgA.toFixed(1)}/10。`)
+        filteredEatings.reduce((a, b) => a + normalizeAppetite(b.appetite), 0) /
+        filteredEatings.length
+      lines.push(
+        `饮食记录 ${filteredEatings.length} 天，平均约「${appetiteLabel(avgA)}」（1–5 均 ${avgA.toFixed(1)}）。`,
+      )
     }
     if (filteredDeps.length) {
       const open = filteredDeps.filter((d) => !d.endedAt).length
@@ -345,6 +349,7 @@ export function SummaryPage() {
                     if (value == null) return ['—', String(name)]
                     if (name === '情绪') return [Number(value).toFixed(0), '情绪(0–100)']
                     if (name === '睡眠质量') return [sleepQualityLabel(Number(value)), '睡眠']
+                    if (name === '食欲') return [appetiteLabel(Number(value)), '食欲']
                     return [String(value), String(name)]
                   }}
                 />
