@@ -267,7 +267,7 @@ export function SummaryPage() {
 
   return (
     <Page
-      title="就医总结"
+      title="心迹"
       sub="按区间汇总情绪、睡眠与发作记录，便于就诊沟通。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
     >

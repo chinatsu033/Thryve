@@ -61,7 +61,7 @@ export function BodyPage() {
 
   return (
     <Page
-      title="身心记录"
+      title="基石"
       sub="睡眠、饮食与抑郁发作轻量打卡。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={

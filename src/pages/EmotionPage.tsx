@@ -126,7 +126,7 @@ export function EmotionPage() {
 
   return (
     <Page
-      title="情绪记录"
+      title="倾听"
       sub="用湖面风景感受当下，再轻轻写下词语与来源。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
