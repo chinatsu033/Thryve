@@ -16,21 +16,37 @@ export function normalizeMood(mood: number, entry?: { sources?: string[] }): num
   return Math.min(100, Math.max(1, Math.round(mood)))
 }
 
-export type MoodBand = '低谷' | '偏低' | '平稳' | '偏暖' | '盛放'
+/** 11 emotion states from 低谷 → 盛放 (maps continuous 1–100). */
+export const MOOD_LABELS = [
+  '低谷',
+  '长夜',
+  '阴霾',
+  '破晓',
+  '微风',
+  '平稳',
+  '暖阳',
+  '清朗',
+  '跃动',
+  '璀璨',
+  '盛放',
+] as const
 
-export function moodBand(mood100: number): MoodBand {
-  if (mood100 <= 20) return '低谷'
-  if (mood100 <= 40) return '偏低'
-  if (mood100 <= 60) return '平稳'
-  if (mood100 <= 80) return '偏暖'
-  return '盛放'
+export type MoodLabel = (typeof MOOD_LABELS)[number]
+
+/** Index 0–10 for mood 1–100. */
+export function moodLabelIndex(mood100: number): number {
+  const m = Math.min(100, Math.max(1, Math.round(mood100)))
+  return Math.min(10, Math.floor(((m - 1) * 11) / 100))
 }
 
-/** Soft 3-band label for list cards. */
-export function moodSoftLabel(mood100: number): '低谷' | '平稳' | '盛放' {
-  if (mood100 < 40) return '低谷'
-  if (mood100 <= 60) return '平稳'
-  return '盛放'
+export function moodSoftLabel(mood100: number): MoodLabel {
+  return MOOD_LABELS[moodLabelIndex(mood100)]
+}
+
+/** @deprecated alias — use moodSoftLabel */
+export type MoodBand = MoodLabel
+export function moodBand(mood100: number): MoodLabel {
+  return moodSoftLabel(mood100)
 }
 
 /** ~4 rows of chips at typical mobile width. */
@@ -120,7 +136,9 @@ export const EMOTION_SOURCE_WORDS = [
 ] as const
 
 export function emotionWordsForMood(mood: number): readonly string[] {
-  if (mood > 50) return POSITIVE_EMOTION_WORDS
-  if (mood < 50) return NEGATIVE_EMOTION_WORDS
+  const i = moodLabelIndex(mood)
+  // 平稳(5) neutral; below → negative; above → positive
+  if (i > 5) return POSITIVE_EMOTION_WORDS
+  if (i < 5) return NEGATIVE_EMOTION_WORDS
   return NEUTRAL_EMOTION_WORDS
 }

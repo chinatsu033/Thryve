@@ -218,6 +218,9 @@ export function EmotionPage() {
                   >
                     <LakeMoodScene mood={mood} className="lake-scene-card-fill" />
                     <div className="lake-overlay-controls">
+                      <p className="sleep-feel-label" aria-live="polite">
+                        {moodSoftLabel(mood)}
+                      </p>
                       <div className="lake-slider-wrap">
                         <input
                           type="range"
@@ -229,6 +232,7 @@ export function EmotionPage() {
                           aria-valuemin={1}
                           aria-valuemax={100}
                           aria-valuenow={mood}
+                          aria-valuetext={moodSoftLabel(mood)}
                           aria-label="情绪：低谷到盛放"
                           className="lake-range"
                         />
