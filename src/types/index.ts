@@ -1,0 +1,153 @@
+export interface ThemeConfig {
+  primary: string
+  accent: string
+  surface: string
+}
+
+export interface MedicalHistory {
+  diagnoses: string
+  medications: string
+  allergies: string
+  notes: string
+  skipped: boolean
+}
+
+export interface Profile {
+  id: string
+  name: string
+  passwordHash: string
+  salt: string
+  createdAt: string
+  medicalHistory: MedicalHistory
+  theme: ThemeConfig
+  onboardingDone: boolean
+}
+
+export type EmotionMode = 'current' | 'daily'
+
+export interface EmotionEntry {
+  id: string
+  profileId: string
+  mode: EmotionMode
+  mood: number
+  tags: string[]
+  notes: string
+  recordedAt: string
+  createdAt: string
+}
+
+export interface SleepEntry {
+  id: string
+  profileId: string
+  date: string
+  bedtime: string
+  wakeTime: string
+  quality: number
+  interruptions: number
+  notes: string
+  createdAt: string
+}
+
+export interface EatingEntry {
+  id: string
+  profileId: string
+  date: string
+  meals: number
+  appetite: number
+  notes: string
+  createdAt: string
+}
+
+export interface DepressiveChecklist {
+  lowEnergy: boolean
+  anhedonia: boolean
+  sleepChange: boolean
+  appetiteChange: boolean
+  guilt: boolean
+  concentration: boolean
+  psychomotor: boolean
+  suicidalThoughts: boolean
+}
+
+export interface DepressiveEntry {
+  id: string
+  profileId: string
+  startedAt: string
+  endedAt: string | null
+  feelings: string
+  severity: number
+  checklist: DepressiveChecklist
+  notes: string
+  createdAt: string
+}
+
+export interface AttachmentMeta {
+  id: string
+  profileId: string
+  name: string
+  mimeType: string
+  size: number
+  createdAt: string
+  note: string
+}
+
+export interface ProfileExport {
+  version: 1
+  exportedAt: string
+  profile: Omit<Profile, 'passwordHash' | 'salt'> & {
+    passwordHash?: string
+    salt?: string
+  }
+  emotions: EmotionEntry[]
+  sleeps: SleepEntry[]
+  eatings: EatingEntry[]
+  depressives: DepressiveEntry[]
+  attachments: Array<AttachmentMeta & { dataBase64: string }>
+}
+
+export const EMOTION_TAGS = [
+  '焦虑',
+  '平静',
+  '悲伤',
+  '喜悦',
+  '愤怒',
+  '疲惫',
+  '孤独',
+  '希望',
+  '恐惧',
+  '感激',
+  '麻木',
+  '烦躁',
+] as const
+
+export const THEME_PRESETS: Record<string, ThemeConfig> = {
+  宁静蓝: { primary: '#5B6CFF', accent: '#00BFA5', surface: '#F5F7FF' },
+  暖阳橙: { primary: '#FF8A65', accent: '#FFD54F', surface: '#FFF8F3' },
+  草木绿: { primary: '#43A047', accent: '#26A69A', surface: '#F3FAF4' },
+  暮紫: { primary: '#7E57C2', accent: '#EC407A', surface: '#F8F5FC' },
+  雾灰: { primary: '#607D8B', accent: '#90A4AE', surface: '#F5F7F8' },
+}
+
+export const DEFAULT_THEME: ThemeConfig = THEME_PRESETS['宁静蓝']
+
+export const DEFAULT_CHECKLIST: DepressiveChecklist = {
+  lowEnergy: false,
+  anhedonia: false,
+  sleepChange: false,
+  appetiteChange: false,
+  guilt: false,
+  concentration: false,
+  psychomotor: false,
+  suicidalThoughts: false,
+}
+
+export const CHECKLIST_LABELS: Record<keyof DepressiveChecklist, string> = {
+  lowEnergy: '精力下降 / 易疲劳',
+  anhedonia: '兴趣减退 / 快感缺失',
+  sleepChange: '睡眠明显改变',
+  appetiteChange: '食欲或体重改变',
+  guilt: '过度自责或无价值感',
+  concentration: '注意力 / 决策困难',
+  psychomotor: '动作迟缓或烦躁不安',
+  suicidalThoughts: '消极念头或自伤想法',
+}
