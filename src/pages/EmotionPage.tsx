@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Empty, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +20,7 @@ type Step = 'mood' | 'words' | 'source'
 
 export function EmotionPage() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [items, setItems] = useState<EmotionEntry[]>([])
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<Step>('mood')
@@ -126,6 +128,7 @@ export function EmotionPage() {
     <Page
       title="情绪记录"
       sub="用湖面风景感受当下，再轻轻写下词语与来源。"
+      back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         <Button className="btn-sm no-print" onClick={openFlow}>
           ＋ 新建

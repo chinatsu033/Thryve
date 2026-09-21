@@ -2,6 +2,7 @@ import { format, parseISO, subDays, isWithinInterval, startOfDay, endOfDay, each
 import { zhCN } from 'date-fns/locale'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   CartesianGrid,
   Legend,
@@ -51,6 +52,7 @@ function mood100(e: EmotionEntry): number {
 
 export function SummaryPage() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [range, setRange] = useState<RangeKey>('14')
   const [customFrom, setCustomFrom] = useState(format(subDays(new Date(), 14), 'yyyy-MM-dd'))
   const [customTo, setCustomTo] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -264,7 +266,11 @@ export function SummaryPage() {
   if (!profile) return null
 
   return (
-    <Page title="就医总结" sub="按区间汇总情绪、睡眠与发作记录，便于就诊沟通。">
+    <Page
+      title="就医总结"
+      sub="按区间汇总情绪、睡眠与发作记录，便于就诊沟通。"
+      back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
+    >
       <Disclaimer />
 
       <Card title="时间范围" className="no-print">

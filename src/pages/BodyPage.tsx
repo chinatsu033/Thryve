@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button, Empty, Field, Modal, MoodSlider, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
@@ -33,6 +34,7 @@ function todayStr() {
 
 export function BodyPage() {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('sleep')
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
@@ -61,6 +63,7 @@ export function BodyPage() {
     <Page
       title="身心记录"
       sub="睡眠、饮食与抑郁发作轻量打卡。"
+      back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         <Button className="btn-sm no-print" onClick={() => setModal(tab)}>
           ＋ 新建

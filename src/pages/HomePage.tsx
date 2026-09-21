@@ -2,7 +2,7 @@ import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -11,6 +11,16 @@ import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import type { DepressiveEntry, EmotionEntry, SleepEntry } from '../types'
 
 type Layer = 'landing' | 'dashboard'
+
+type HomeLocationState = { homeLayer?: Layer }
+
+function layerFromLocation(search: string, state: unknown): Layer {
+  const st = state as HomeLocationState | null
+  if (st?.homeLayer === 'dashboard') return 'dashboard'
+  const q = new URLSearchParams(search)
+  if (q.get('view') === 'dashboard') return 'dashboard'
+  return 'landing'
+}
 
 const SWIPE_THRESHOLD = 56
 
@@ -57,13 +67,32 @@ function ChevronDownIcon() {
   )
 }
 
+function SettingsGearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M19.14 12.94c.04-.31.06-.63.06-.94s-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94L2.86 14.52a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.22.24.41.48.41h3.84c.24 0 .44-.19.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z"
+      />
+    </svg>
+  )
+}
+
 export function HomePage() {
   const { profile } = useAuth()
+  const location = useLocation()
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [deps, setDeps] = useState<DepressiveEntry[]>([])
-  const [layer, setLayer] = useState<Layer>('landing')
+  const [layer, setLayer] = useState<Layer>(() =>
+    layerFromLocation(location.search, location.state),
+  )
   const touchStartY = useRef<number | null>(null)
+
+  useEffect(() => {
+    const next = layerFromLocation(location.search, location.state)
+    if (next === 'dashboard') setLayer('dashboard')
+  }, [location.search, location.state])
 
   useEffect(() => {
     if (!profile) return
@@ -217,11 +246,11 @@ export function HomePage() {
 
 
             <Card title="最近情绪">
-              {emotions.slice(0, 5).length === 0 ? (
+              {emotions.slice(0, 3).length === 0 ? (
                 <Empty text="暂无记录" />
               ) : (
                 <div className="list">
-                  {emotions.slice(0, 5).map((e) => (
+                  {emotions.slice(0, 3).map((e) => (
                     <div key={e.id} className="list-item">
                       <div>
                         <strong>{labelFor(e)}</strong>
@@ -238,6 +267,10 @@ export function HomePage() {
             </Card>
 
             <Disclaimer />
+
+            <Link to="/settings" className="home-settings-fab" aria-label="设置">
+              <SettingsGearIcon />
+            </Link>
           </Page>
         </motion.div>
       )}

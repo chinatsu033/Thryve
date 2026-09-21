@@ -227,11 +227,17 @@ export function Page({
   sub?: string
   children: ReactNode
   actions?: ReactNode
-  /** Show top-left chevron back. Default true; set false on home / auth. */
-  back?: boolean
+  /** Show top-left chevron back. Default true; set false on home / auth.
+   *  Pass a function to override destination (e.g. dashboard). */
+  back?: boolean | (() => void)
 }) {
   const navigate = useNavigate()
-  const showHeader = Boolean(title || sub || actions || back)
+  const showBack = back !== false
+  const handleBack = () => {
+    if (typeof back === 'function') back()
+    else goBackOrHome(navigate)
+  }
+  const showHeader = Boolean(title || sub || actions || showBack)
   return (
     <motion.div
       className="page"
@@ -240,11 +246,11 @@ export function Page({
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: 0.25 }}
     >
-      {back ? (
+      {showBack ? (
         <button
           type="button"
           className="page-back"
-          onClick={() => goBackOrHome(navigate)}
+          onClick={handleBack}
           aria-label="返回"
         >
           <BackChevronIcon />

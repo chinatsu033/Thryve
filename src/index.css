@@ -1014,3 +1014,31 @@ p {
   margin-top: 18px;
   margin-bottom: 8px;
 }
+
+.home-settings-fab {
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right, 0px));
+  bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(26, 26, 46, 0.08);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-settings-fab:active {
+  opacity: 0.85;
+  transform: scale(0.96);
+}
+
+.home-dashboard-layer .page {
+  padding-bottom: 64px;
+}
