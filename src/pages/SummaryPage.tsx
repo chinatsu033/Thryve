@@ -21,8 +21,11 @@ import {
   listAttachments,
   listEatings,
   listEmotions,
+  listMedications,
+  listMedLogs,
   listSleeps,
 } from '../lib/db'
+import { adherenceSummary } from '../lib/meds'
 import { chartEnter } from '../lib/motion'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import { appetiteLabel, normalizeAppetite } from '../lib/eating'
@@ -31,6 +34,8 @@ import type {
   AttachmentMeta,
   EatingEntry,
   EmotionEntry,
+  MedLog,
+  Medication,
   SleepEntry,
 } from '../types'
 
@@ -59,20 +64,26 @@ export function SummaryPage() {
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
+  const [medications, setMedications] = useState<Medication[]>([])
+  const [medLogs, setMedLogs] = useState<MedLog[]>([])
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [copyOk, setCopyOk] = useState(false)
 
   const reload = useCallback(async () => {
     if (!profile) return
-    const [e, s, ea, a] = await Promise.all([
+    const [e, s, ea, a, meds, mlogs] = await Promise.all([
       listEmotions(profile.id),
       listSleeps(profile.id),
       listEatings(profile.id),
       listAttachments(profile.id),
+      listMedications(profile.id),
+      listMedLogs(profile.id),
     ])
     setEmotions(e)
     setSleeps(s)
     setEatings(ea)
+    setMedications(meds)
+    setMedLogs(mlogs)
     setAttachments(a.sort((x, y) => y.createdAt.localeCompare(x.createdAt)))
     const urls: Record<string, string> = {}
     for (const meta of a) {
@@ -175,9 +186,23 @@ export function SummaryPage() {
         `饮食记录 ${filteredEatings.length} 天，平均约「${appetiteLabel(avgA)}」（1–5 均 ${avgA.toFixed(1)}）。`,
       )
     }
+    if (medications.some((m) => m.enabled)) {
+      const from = format(interval.start, 'yyyy-MM-dd')
+      const to = format(interval.end, 'yyyy-MM-dd')
+      const ad = adherenceSummary(medications, medLogs, from, to)
+      if (ad.due > 0) {
+        lines.push(
+          `用药：应服 ${ad.due} 次，已服 ${ad.taken}、跳过 ${ad.skipped}、漏服 ${ad.missed}` +
+            (ad.rate != null ? `（依从约 ${ad.rate}%）` : '') +
+            '。',
+        )
+      } else {
+        lines.push('本区间暂无计划用药次数。')
+      }
+    }
     lines.push('说明：以上为个人主观记录汇总，不能替代专业诊断。')
     return lines
-  }, [filteredEmotions, filteredSleeps, filteredEatings, profile])
+  }, [filteredEmotions, filteredSleeps, filteredEatings, medications, medLogs, interval, profile])
 
   const summaryText = useMemo(() => {
     const from = format(interval.start, 'yyyy-MM-dd')
@@ -225,7 +250,7 @@ export function SummaryPage() {
   return (
     <Page
       title="心迹"
-      sub="按区间汇总情绪、睡眠与饮食记录，便于就诊沟通。"
+      sub="按区间汇总情绪、睡眠、饮食与用药记录，便于就诊沟通。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
     >
       <Disclaimer />

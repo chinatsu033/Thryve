@@ -39,7 +39,7 @@ const DASHBOARD_MODULES: Array<{
 }> = [
   { to: '/summary', label: '心迹', hint: '就医总结', variant: 'ghost' },
   { to: '/emotion', label: '倾听', hint: '情绪记录', variant: 'primary' },
-  { to: '/body', label: '基石', hint: '身心打卡', variant: 'accent' },
+  { to: '/body', label: '基石', hint: '睡眠·饮食·用药', variant: 'accent' },
 ]
 
 function fullShellRect(): ShellRect {

@@ -65,6 +65,32 @@ export interface EatingEntry {
   createdAt: string
 }
 
+/** reminderTimes: local HH:mm. daysOfWeek null/[] = every day (0=Sun..6=Sat). */
+export interface Medication {
+  id: string
+  profileId: string
+  name: string
+  dosage: string
+  notes: string
+  reminderTimes: string[]
+  daysOfWeek: number[] | null
+  color: string | null
+  enabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface MedLog {
+  id: string
+  profileId: string
+  medicationId: string
+  takenDate: string
+  takenTime: string | null
+  takenAt: string
+  skipped: boolean
+  note: string
+}
+
 export interface DepressiveChecklist {
   lowEnergy: boolean
   anhedonia: boolean

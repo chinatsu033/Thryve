@@ -5,7 +5,7 @@
  */
 import { isLegacyMoodEntry, normalizeMood } from './mood'
 import { requireSupabase } from './supabase'
-import { DEFAULT_THEME, type EatingEntry, type EmotionEntry, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
+import { DEFAULT_THEME, type EatingEntry, type EmotionEntry, type MedLog, type Medication, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
 
 function hydrateEmotion(e: EmotionEntry): EmotionEntry {
   const sources = e.sources ?? []
@@ -67,6 +67,31 @@ type EatingRow = {
   created_at: string
 }
 
+type MedicationRow = {
+  id: string
+  user_id: string
+  name: string
+  dosage: string | null
+  notes: string | null
+  reminder_times: string[] | null
+  days_of_week: number[] | null
+  color: string | null
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+type MedLogRow = {
+  id: string
+  user_id: string
+  medication_id: string
+  taken_date: string
+  taken_time: string | null
+  taken_at: string
+  skipped: boolean
+  note: string | null
+}
+
 function rowToProfile(row: ProfileRow, email: string): Profile {
   return {
     id: row.id,
@@ -116,6 +141,35 @@ function rowToEating(row: EatingRow): EatingEntry {
     appetite: row.appetite,
     notes: row.notes ?? '',
     createdAt: row.created_at,
+  }
+}
+
+function rowToMedication(row: MedicationRow): Medication {
+  return {
+    id: row.id,
+    profileId: row.user_id,
+    name: row.name,
+    dosage: row.dosage ?? '',
+    notes: row.notes ?? '',
+    reminderTimes: row.reminder_times ?? [],
+    daysOfWeek: row.days_of_week,
+    color: row.color,
+    enabled: row.enabled,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }
+}
+
+function rowToMedLog(row: MedLogRow): MedLog {
+  return {
+    id: row.id,
+    profileId: row.user_id,
+    medicationId: row.medication_id,
+    takenDate: row.taken_date,
+    takenTime: row.taken_time,
+    takenAt: row.taken_at,
+    skipped: row.skipped,
+    note: row.note ?? '',
   }
 }
 
@@ -239,6 +293,76 @@ export async function deleteEating(id: string): Promise<void> {
   if (error) throw error
 }
 
+
+export async function listMedications(userId: string): Promise<Medication[]> {
+  const sb = requireSupabase()
+  const { data, error } = await sb
+    .from('thryve_medications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data as MedicationRow[] | null)?.map(rowToMedication) ?? []
+}
+
+export async function putMedication(m: Medication): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_medications').upsert({
+    id: m.id,
+    user_id: m.profileId,
+    name: m.name,
+    dosage: m.dosage ?? '',
+    notes: m.notes ?? '',
+    reminder_times: m.reminderTimes ?? [],
+    days_of_week: m.daysOfWeek,
+    color: m.color,
+    enabled: m.enabled,
+    created_at: m.createdAt,
+    updated_at: m.updatedAt || new Date().toISOString(),
+  })
+  if (error) throw error
+}
+
+export async function deleteMedication(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_medications').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listMedLogs(
+  userId: string,
+  opts?: { from?: string; to?: string },
+): Promise<MedLog[]> {
+  const sb = requireSupabase()
+  let q = sb.from('thryve_med_logs').select('*').eq('user_id', userId)
+  if (opts?.from) q = q.gte('taken_date', opts.from)
+  if (opts?.to) q = q.lte('taken_date', opts.to)
+  const { data, error } = await q.order('taken_date', { ascending: false })
+  if (error) throw error
+  return (data as MedLogRow[] | null)?.map(rowToMedLog) ?? []
+}
+
+export async function putMedLog(log: MedLog): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_med_logs').upsert({
+    id: log.id,
+    user_id: log.profileId,
+    medication_id: log.medicationId,
+    taken_date: log.takenDate,
+    taken_time: log.takenTime,
+    taken_at: log.takenAt,
+    skipped: log.skipped,
+    note: log.note ?? '',
+  })
+  if (error) throw error
+}
+
+export async function deleteMedLog(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_med_logs').delete().eq('id', id)
+  if (error) throw error
+}
+
 /** Attachments skipped for cloud MVP (no blob storage yet). */
 export async function listAttachments(_userId: string) {
   return [] as import('../types').AttachmentMeta[]
@@ -326,5 +450,7 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     sb.from('thryve_emotions').delete().eq('user_id', userId),
     sb.from('thryve_sleeps').delete().eq('user_id', userId),
     sb.from('thryve_eatings').delete().eq('user_id', userId),
+    sb.from('thryve_med_logs').delete().eq('user_id', userId),
+    sb.from('thryve_medications').delete().eq('user_id', userId),
   ])
 }

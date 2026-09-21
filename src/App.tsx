@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
+import { MedReminderHost } from './components/MedReminderHost'
 import { useAuth } from './context/AuthContext'
 import { AuthPage } from './pages/AuthPage'
 import { BodyPage } from './pages/BodyPage'
@@ -22,7 +23,9 @@ export default function App() {
   if (!ready) return <div className="loading">加载中…</div>
 
   return (
-    <Routes>
+    <>
+      {profile ? <MedReminderHost /> : null}
+      <Routes>
       <Route element={<Layout />}>
         <Route
           path="/auth"
@@ -72,5 +75,6 @@ export default function App() {
         <Route path="*" element={<Navigate to={profile ? '/' : '/auth'} replace />} />
       </Route>
     </Routes>
+    </>
   )
 }

@@ -10,6 +10,10 @@ import {
   type InviteCodeRow,
 } from '../lib/invite'
 import {
+  currentNotificationPermission,
+  requestNotificationPermission,
+} from '../lib/medReminders'
+import {
   DEFAULT_THEME,
   THEME_PRESETS,
   type ProfileExport,
@@ -25,6 +29,7 @@ export function SettingsPage() {
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
   const [inviteCodes, setInviteCodes] = useState<InviteCodeRow[]>([])
   const [inviteBusy, setInviteBusy] = useState(false)
+  const [notifPerm, setNotifPerm] = useState(() => currentNotificationPermission())
 
   const refreshInviteCodes = useCallback(async () => {
     if (!profile) return
@@ -98,7 +103,7 @@ export function SettingsPage() {
   }
 
   const doClearCloud = async () => {
-    if (!confirm('确定清空当前账户的云端情绪 / 睡眠 / 饮食记录？此操作不可恢复。')) return
+    if (!confirm('确定清空当前账户的云端情绪 / 睡眠 / 饮食 / 用药记录？此操作不可恢复。')) return
     if (!confirm('再次确认：将删除云端打卡数据（不会删除登录账号）。')) return
     await deleteAllUserData(profile.id)
     setMsg('云端打卡数据已清空')
@@ -129,6 +134,16 @@ export function SettingsPage() {
     } finally {
       setInviteBusy(false)
     }
+  }
+
+
+  const doRequestNotif = async () => {
+    const p = await requestNotificationPermission()
+    setNotifPerm(p)
+    if (p === 'granted') setMsg('已开启浏览器用药提醒权限')
+    else if (p === 'denied') setMsg('浏览器已拒绝通知权限，可在站点设置中重新允许')
+    else if (p === 'unsupported') setMsg('当前浏览器不支持网页通知')
+    else setMsg('尚未授权通知权限')
   }
 
   const formatUses = (row: InviteCodeRow) => {
@@ -224,6 +239,26 @@ export function SettingsPage() {
         <Button variant="accent" onClick={() => fileRef.current?.click()}>
           选择 JSON 导入到本账户
         </Button>
+      </Card>
+
+
+      <Card title="用药提醒（浏览器通知）">
+        <p className="hint">
+          开启后，在本标签页保持打开（或添加到主屏幕）时，会对今日未打卡的服药时间弹出提醒。标签关闭后可能不准；无服务器推送（MVP）。
+        </p>
+        <p style={{ margin: '0 0 12px' }}>
+          当前权限：
+          <strong>
+            {notifPerm === 'granted'
+              ? '已允许'
+              : notifPerm === 'denied'
+                ? '已拒绝'
+                : notifPerm === 'unsupported'
+                  ? '不支持'
+                  : '未请求'}
+          </strong>
+        </p>
+        <Button onClick={() => void doRequestNotif()}>请求通知权限</Button>
       </Card>
 
       <Card title="邀请码">

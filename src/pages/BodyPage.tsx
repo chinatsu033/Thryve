@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EatingFlowSheet } from '../components/EatingFlowSheet'
+import { MedsPanel } from '../components/MedsPanel'
 import { SleepFlowSheet } from '../components/SleepFlowSheet'
 import { Button, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -19,7 +20,7 @@ import {
 } from '../lib/db'
 import type { EatingEntry, SleepEntry } from '../types'
 
-type Tab = 'sleep' | 'eating'
+type Tab = 'sleep' | 'eating' | 'meds'
 
 export function BodyPage() {
   const { profile } = useAuth()
@@ -27,7 +28,7 @@ export function BodyPage() {
   const [tab, setTab] = useState<Tab>('sleep')
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
-  const [modal, setModal] = useState<Tab | null>(null)
+  const [modal, setModal] = useState<'sleep' | 'eating' | null>(null)
 
   const reload = useCallback(async () => {
     if (!profile) return
@@ -45,12 +46,14 @@ export function BodyPage() {
   return (
     <Page
       title="基石"
-      sub="睡眠与饮食轻量打卡。"
+      sub="睡眠、饮食与用药轻量打卡。"
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
-        <Button className="btn-sm no-print" onClick={() => setModal(tab)}>
-          +
-        </Button>
+        tab === 'meds' ? null : (
+          <Button className="btn-sm no-print" onClick={() => setModal(tab)}>
+            +
+          </Button>
+        )
       }
     >
       <div className="chip-row">
@@ -58,6 +61,7 @@ export function BodyPage() {
           [
             ['sleep', '睡眠'],
             ['eating', '饮食'],
+            ['meds', '用药'],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -91,6 +95,7 @@ export function BodyPage() {
               }}
             />
           ) : null}
+          {tab === 'meds' ? <MedsPanel userId={profile.id} /> : null}
         </motion.div>
       </AnimatePresence>
 
