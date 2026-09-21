@@ -31,7 +31,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <Page title="欢迎使用" sub={`你好，${profile.name}。可选择性填写病史，便于日后就医沟通。`}>
+    <Page back={false} title="欢迎使用" sub={`你好，${profile.name}。可选择性填写病史，便于日后就医沟通。`}>
       <Disclaimer />
       <Card title="可选病史（仅保存在本机）">
         <Field label="既往诊断">

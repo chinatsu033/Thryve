@@ -14,10 +14,15 @@ type Layer = 'landing' | 'dashboard'
 
 const SWIPE_THRESHOLD = 56
 
-const LANDING_MODULES: Array<{ to: string; label: string; hint: string }> = [
-  { to: '/summary', label: '心迹', hint: '就医总结' },
-  { to: '/emotion', label: '倾听', hint: '情绪记录' },
-  { to: '/body', label: '基石', hint: '身心打卡' },
+const DASHBOARD_MODULES: Array<{
+  to: string
+  label: string
+  hint: string
+  variant: 'primary' | 'accent' | 'ghost'
+}> = [
+  { to: '/summary', label: '心迹', hint: '就医总结', variant: 'ghost' },
+  { to: '/emotion', label: '倾听', hint: '情绪记录', variant: 'primary' },
+  { to: '/body', label: '基石', hint: '身心打卡', variant: 'accent' },
 ]
 
 function ChevronUpIcon() {
@@ -138,25 +143,11 @@ export function HomePage() {
               </p>
             </motion.div>
 
-            <motion.nav
-              className="home-landing-modules"
-              aria-label="入口模块"
-              initial={{ opacity: 0, y: 28 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.28 }}
-            >
-              {LANDING_MODULES.map((m) => (
-                <Link key={m.to} to={m.to} className="home-landing-module">
-                  <span className="home-landing-module-label">{m.label}</span>
-                  <span className="home-landing-module-hint">{m.hint}</span>
-                </Link>
-              ))}
-            </motion.nav>
           </div>
 
           <button
             type="button"
-            className="home-chevron-box home-chevron-up"
+            className="home-chevron-float home-chevron-up"
             onClick={goDashboard}
             aria-label="进入首页"
           >
@@ -174,7 +165,7 @@ export function HomePage() {
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEndDashboard}
         >
-          <Page>
+          <Page back={false}>
             <div className="home-dash-chevron-wrap">
               <button
                 type="button"
@@ -186,18 +177,16 @@ export function HomePage() {
               </button>
             </div>
 
-            <div className="row home-cta-row" style={{ marginBottom: 14 }}>
-              <Link to="/emotion" style={{ flex: 1 }}>
-                <Button block className="home-cta-btn">
-                  倾听
-                </Button>
-              </Link>
-              <Link to="/body" style={{ flex: 1 }}>
-                <Button block variant="accent" className="home-cta-btn">
-                  基石
-                </Button>
-              </Link>
-            </div>
+            <nav className="row home-cta-row" aria-label="入口模块" style={{ marginBottom: 14 }}>
+              {DASHBOARD_MODULES.map((m) => (
+                <Link key={m.to} to={m.to} className="home-cta-link">
+                  <Button block variant={m.variant} className="home-cta-btn">
+                    <span className="home-cta-label">{m.label}</span>
+                    <span className="home-cta-hint">{m.hint}</span>
+                  </Button>
+                </Link>
+              ))}
+            </nav>
 
             <Card title="今日速览">
               {latestMood ? (
@@ -226,19 +215,6 @@ export function HomePage() {
               ) : null}
             </Card>
 
-            <Card title="快捷入口">
-              <div className="chip-row">
-                <Link to="/summary" className="chip">
-                  就医总结
-                </Link>
-                <Link to="/settings" className="chip">
-                  主题与隐私
-                </Link>
-                <Link to="/body" className="chip">
-                  睡眠 / 饮食
-                </Link>
-              </div>
-            </Card>
 
             <Card title="最近情绪">
               {emotions.slice(0, 5).length === 0 ? (

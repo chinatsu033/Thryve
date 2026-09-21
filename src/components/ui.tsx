@@ -5,6 +5,7 @@ import {
   type ReactNode,
   useEffect,
 } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export function Card({
   children,
@@ -187,18 +188,33 @@ export function Empty({ text }: { text: string }) {
   return <div className="empty">{text}</div>
 }
 
+function goBackOrHome(navigate: ReturnType<typeof useNavigate>) {
+  const idx = (window.history.state as { idx?: number } | null)?.idx
+  if (typeof idx === 'number') {
+    if (idx > 0) navigate(-1)
+    else navigate('/')
+    return
+  }
+  if (window.history.length > 1) navigate(-1)
+  else navigate('/')
+}
+
 export function Page({
   title,
   sub,
   children,
   actions,
+  back = true,
 }: {
   title?: string
   sub?: string
   children: ReactNode
   actions?: ReactNode
+  /** Show top-left 「← 返回」. Default true; set false on home / auth. */
+  back?: boolean
 }) {
-  const showHeader = Boolean(title || sub || actions)
+  const navigate = useNavigate()
+  const showHeader = Boolean(title || sub || actions || back)
   return (
     <motion.div
       className="page"
@@ -207,7 +223,17 @@ export function Page({
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: 0.25 }}
     >
-      {showHeader ? (
+      {back ? (
+        <button
+          type="button"
+          className="page-back"
+          onClick={() => goBackOrHome(navigate)}
+          aria-label="返回"
+        >
+          ← 返回
+        </button>
+      ) : null}
+      {showHeader && (title || sub || actions) ? (
         <div
           style={{
             display: 'flex',
