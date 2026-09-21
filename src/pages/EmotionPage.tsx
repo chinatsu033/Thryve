@@ -137,7 +137,7 @@ export function EmotionPage() {
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         <Button className="btn-sm no-print" onClick={openFlow}>
-          ＋ 新建
+          +
         </Button>
       }
     >

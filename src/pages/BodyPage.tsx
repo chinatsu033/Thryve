@@ -49,7 +49,7 @@ export function BodyPage() {
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         <Button className="btn-sm no-print" onClick={() => setModal(tab)}>
-          ＋ 新建
+          +
         </Button>
       }
     >
