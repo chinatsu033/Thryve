@@ -9,6 +9,7 @@ export function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -26,7 +27,7 @@ export function AuthPage() {
       const res =
         mode === 'login'
           ? await login(email, password)
-          : await register(email, password, displayName)
+          : await register(email, password, displayName, inviteCode)
       if (!res.ok) {
         // Registration may succeed pending email confirm — show as info if message hints
         if (res.error.includes('注册成功') || res.error.includes('邮箱验证')) {
@@ -70,14 +71,25 @@ export function AuthPage() {
         </div>
 
         {mode === 'register' ? (
-          <Field label="显示名称" hint="可选，默认定邮箱前缀">
-            <input
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              autoComplete="nickname"
-              placeholder="例如：小明"
-            />
-          </Field>
+          <>
+            <Field label="显示名称" hint="可选，默认定邮箱前缀">
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                autoComplete="nickname"
+                placeholder="例如：小明"
+              />
+            </Field>
+            <Field label="邀请码" hint="注册需要有效邀请码">
+              <input
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                autoComplete="off"
+                placeholder="例如：THRYVE26"
+                spellCheck={false}
+              />
+            </Field>
+          </>
         ) : null}
 
         <Field label="邮箱">

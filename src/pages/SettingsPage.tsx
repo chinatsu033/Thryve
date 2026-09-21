@@ -1,8 +1,14 @@
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { deleteAllUserData, exportProfile, importIntoCurrentUser } from '../lib/db'
+import {
+  createInviteCode,
+  listMyInviteCodes,
+  setInviteCodeEnabled,
+  type InviteCodeRow,
+} from '../lib/invite'
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
@@ -17,6 +23,23 @@ export function SettingsPage() {
   const [msg, setMsg] = useState('')
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
+  const [inviteCodes, setInviteCodes] = useState<InviteCodeRow[]>([])
+  const [inviteBusy, setInviteBusy] = useState(false)
+
+  const refreshInviteCodes = useCallback(async () => {
+    if (!profile) return
+    try {
+      const rows = await listMyInviteCodes(profile.id)
+      setInviteCodes(rows)
+    } catch (e) {
+      console.error(e)
+      setMsg(`加载邀请码失败：${e instanceof Error ? e.message : '未知错误'}`)
+    }
+  }, [profile])
+
+  useEffect(() => {
+    if (profile) void refreshInviteCodes()
+  }, [profile, refreshInviteCodes])
 
   if (!profile) return null
 
@@ -79,6 +102,38 @@ export function SettingsPage() {
     if (!confirm('再次确认：将删除云端打卡数据（不会删除登录账号）。')) return
     await deleteAllUserData(profile.id)
     setMsg('云端打卡数据已清空')
+  }
+
+  const doGenerateInvite = async () => {
+    setInviteBusy(true)
+    try {
+      const row = await createInviteCode({ userId: profile.id, maxUses: 10 })
+      setInviteCodes((prev) => [row, ...prev])
+      setMsg(`已生成邀请码 ${row.code}（最多 10 次）`)
+    } catch (e) {
+      setMsg(`生成失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const doToggleInvite = async (row: InviteCodeRow) => {
+    setInviteBusy(true)
+    try {
+      const next = !row.enabled
+      await setInviteCodeEnabled(row.id, next)
+      setInviteCodes((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: next } : r)))
+      setMsg(next ? `已启用 ${row.code}` : `已停用 ${row.code}`)
+    } catch (e) {
+      setMsg(`更新失败：${e instanceof Error ? e.message : '未知错误'}`)
+    } finally {
+      setInviteBusy(false)
+    }
+  }
+
+  const formatUses = (row: InviteCodeRow) => {
+    const max = row.max_uses == null ? '∞' : String(row.max_uses)
+    return `${row.use_count} / ${max}`
   }
 
   return (
@@ -169,6 +224,38 @@ export function SettingsPage() {
         <Button variant="accent" onClick={() => fileRef.current?.click()}>
           选择 JSON 导入到本账户
         </Button>
+      </Card>
+
+      <Card title="邀请码">
+        <p className="hint">生成邀请码分享给朋友注册。每人仅能看到自己创建的码。</p>
+        <Button disabled={inviteBusy} onClick={() => void doGenerateInvite()}>
+          {inviteBusy ? '处理中…' : '生成新邀请码'}
+        </Button>
+        <div style={{ height: 12 }} />
+        {inviteCodes.length === 0 ? (
+          <p className="hint" style={{ margin: 0 }}>
+            暂无自建邀请码
+          </p>
+        ) : (
+          <ul className="summary-bullets" style={{ margin: 0 }}>
+            {inviteCodes.map((row) => (
+              <li key={row.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                <strong style={{ fontFamily: 'ui-monospace, monospace', letterSpacing: '0.04em' }}>
+                  {row.code}
+                </strong>
+                <span className="hint">使用 {formatUses(row)}</span>
+                <span className="hint">{row.enabled ? '已启用' : '已停用'}</span>
+                <Button
+                  variant="ghost"
+                  disabled={inviteBusy}
+                  onClick={() => void doToggleInvite(row)}
+                >
+                  {row.enabled ? '停用' : '启用'}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
 
       <Card title="账户">

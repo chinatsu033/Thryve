@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { ensureProfile, saveProfile } from '../lib/db'
+import { consumeInviteCode } from '../lib/invite'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { applyTheme } from '../lib/theme'
 import { DEFAULT_THEME, type Profile, type ThemeConfig } from '../types'
@@ -23,6 +24,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     displayName?: string,
+    inviteCode?: string,
   ) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>
   logout: () => Promise<void>
@@ -106,13 +108,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfileForUser])
 
   const register = useCallback(
-    async (email: string, password: string, displayName?: string) => {
+    async (email: string, password: string, displayName?: string, inviteCode?: string) => {
       if (!isSupabaseConfigured) {
         return { ok: false as const, error: '未配置云端服务，请联系管理员设置环境变量' }
       }
       const trimmed = email.trim()
       if (!trimmed.includes('@')) return { ok: false as const, error: '请输入有效邮箱' }
       if (password.length < 6) return { ok: false as const, error: '密码至少 6 位' }
+
+      // Consume invite FIRST, then signUp. If signUp fails after consume, use is not
+      // refunded (MVP leak). Prefer same-transaction consume+signup later if needed.
+      const consumed = await consumeInviteCode(inviteCode ?? '')
+      if (!consumed.ok) return { ok: false as const, error: consumed.error }
 
       const name = displayName?.trim() || trimmed.split('@')[0] || '用户'
       const { data, error } = await supabase.auth.signUp({
