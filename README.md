@@ -26,6 +26,13 @@ https://thryve.chinatsu033.org
 
 > 历史 GitHub Pages 路径为 `/Thryve/`；现默认 `base: '/'` 用于 `thryve.chinatsu033.org`。
 
+## 版本
+
+**Ver 0.1（v0.1.0）**
+
+- 新增用药日历
+- 修改主页上滑返回开始页过于灵敏问题
+
 ## 环境变量
 
 复制 `.env.example` 为 `.env`（**不要提交真实密钥**）：

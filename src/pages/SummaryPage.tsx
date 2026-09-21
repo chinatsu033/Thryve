@@ -186,18 +186,34 @@ export function SummaryPage() {
         `饮食记录 ${filteredEatings.length} 天，平均约「${appetiteLabel(avgA)}」（1–5 均 ${avgA.toFixed(1)}）。`,
       )
     }
-    if (medications.some((m) => m.enabled)) {
+    if (medications.length === 0) {
+      lines.push('并未记录是否用药。')
+    } else {
       const from = format(interval.start, 'yyyy-MM-dd')
       const to = format(interval.end, 'yyyy-MM-dd')
+      const names = medications.map((m) => m.name).filter(Boolean)
+      const namePart = names.length
+        ? `已添加用药提醒：${names.slice(0, 8).join('、')}${names.length > 8 ? '等' : ''}。`
+        : '已添加用药提醒。'
+      lines.push(namePart)
       const ad = adherenceSummary(medications, medLogs, from, to)
       if (ad.due > 0) {
         lines.push(
-          `用药：应服 ${ad.due} 次，已服 ${ad.taken}、跳过 ${ad.skipped}、漏服 ${ad.missed}` +
+          `本区间用药打卡：应服 ${ad.due} 次，已服 ${ad.taken}、跳过 ${ad.skipped}、漏服 ${ad.missed}` +
             (ad.rate != null ? `（依从约 ${ad.rate}%）` : '') +
             '。',
         )
+      } else if (medLogs.length > 0) {
+        const inRange = medLogs.filter((l) => l.takenDate >= from && l.takenDate <= to)
+        if (inRange.length) {
+          const taken = inRange.filter((l) => !l.skipped).length
+          const skipped = inRange.filter((l) => l.skipped).length
+          lines.push(`本区间有用药打卡 ${inRange.length} 条（已服 ${taken}、跳过 ${skipped}）。`)
+        } else {
+          lines.push('本区间暂无计划用药次数与打卡记录。')
+        }
       } else {
-        lines.push('本区间暂无计划用药次数。')
+        lines.push('本区间暂无计划用药次数与打卡记录。')
       }
     }
     lines.push('说明：以上为个人主观记录汇总，不能替代专业诊断。')

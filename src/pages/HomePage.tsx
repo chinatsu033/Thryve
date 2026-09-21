@@ -30,7 +30,10 @@ function layerFromLocation(search: string, state: unknown): Layer {
   return 'landing'
 }
 
-const SWIPE_THRESHOLD = 56
+/** Min vertical travel (px) to switch home layers — keep high to avoid casual scroll. */
+const SWIPE_THRESHOLD = 140
+/** Reject gesture if horizontal drift is too large relative to vertical. */
+const SWIPE_HORIZONTAL_MAX_RATIO = 0.65
 
 const DASHBOARD_MODULES: Array<{
   to: string
@@ -127,7 +130,10 @@ export function HomePage() {
   const [emotionFlowOpen, setEmotionFlowOpen] = useState(false)
   const [shellRect, setShellRect] = useState<ShellRect>(() => fullShellRect())
   const touchStartY = useRef<number | null>(null)
+  const touchStartX = useRef<number | null>(null)
   const pendingCloseRef = useRef(false)
+  /** When 微光日历 expanded / med modal open — block swipe-back to landing. */
+  const [medGestureLock, setMedGestureLock] = useState(false)
 
   useEffect(() => {
     const next = layerFromLocation(location.search, location.state)
@@ -199,27 +205,51 @@ export function HomePage() {
 
   const onTouchStart = (e: ReactTouchEvent) => {
     touchStartY.current = e.touches[0]?.clientY ?? null
+    touchStartX.current = e.touches[0]?.clientX ?? null
+  }
+
+  const clearTouch = () => {
+    touchStartY.current = null
+    touchStartX.current = null
+  }
+
+  const verticalIntent = (startY: number, endY: number, startX: number | null, endX: number | null) => {
+    const dy = endY - startY
+    const dx = startX != null && endX != null ? endX - startX : 0
+    if (Math.abs(dy) < SWIPE_THRESHOLD) return null
+    if (Math.abs(dx) > Math.abs(dy) * SWIPE_HORIZONTAL_MAX_RATIO) return null
+    return dy
   }
 
   const onTouchEndLanding = (e: ReactTouchEvent) => {
     if (shellMode === 'card') return
     const start = touchStartY.current
-    touchStartY.current = null
+    const startX = touchStartX.current
+    clearTouch()
     if (start == null) return
     const end = e.changedTouches[0]?.clientY
+    const endX = e.changedTouches[0]?.clientX ?? null
     if (end == null) return
-    if (start - end > SWIPE_THRESHOLD) goDashboard()
+    const dy = verticalIntent(start, end, startX, endX)
+    // Finger moves up → enter dashboard
+    if (dy != null && dy < -SWIPE_THRESHOLD) goDashboard()
   }
 
   const onTouchEndDashboard = (e: ReactTouchEvent) => {
     const start = touchStartY.current
-    touchStartY.current = null
+    const startX = touchStartX.current
+    clearTouch()
     if (start == null) return
+    if (medGestureLock) return
     const end = e.changedTouches[0]?.clientY
+    const endX = e.changedTouches[0]?.clientX ?? null
     if (end == null) return
     const target = e.currentTarget as HTMLElement
-    if (target.scrollTop > 8) return
-    if (end - start > SWIPE_THRESHOLD) goLanding()
+    // Only allow return-to-landing from near the top of the scroll area
+    if (target.scrollTop > 4) return
+    const dy = verticalIntent(start, end, startX, endX)
+    // Finger moves down (pull) → landing; require clear intent
+    if (dy != null && dy > SWIPE_THRESHOLD) goLanding()
   }
 
   if (!profile) return null
@@ -392,7 +422,7 @@ export function HomePage() {
               ))}
             </nav>
 
-            <MedGlowCalendar userId={profile.id} />
+            <MedGlowCalendar userId={profile.id} onInteractionChange={setMedGestureLock} />
 
             <Card title="今日速览">
               {latestMood ? (

@@ -13,6 +13,7 @@ import {
   currentNotificationPermission,
   requestNotificationPermission,
 } from '../lib/medReminders'
+import { APP_CHANGELOG, APP_VERSION_LABEL } from '../lib/version'
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
@@ -310,6 +311,20 @@ export function SettingsPage() {
           <Button variant="danger" onClick={() => void doClearCloud()}>
             清空云端打卡
           </Button>
+        </div>
+      </Card>
+
+      <Card title="关于 Thryve">
+        <div className="settings-version">
+          <div className="settings-version-badge">{APP_VERSION_LABEL}</div>
+          <p className="hint" style={{ margin: '8px 0 12px' }}>
+            更新说明
+          </p>
+          <ul className="summary-bullets settings-changelog">
+            {(APP_CHANGELOG[0]?.notes ?? []).map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
         </div>
       </Card>
 

@@ -73,11 +73,14 @@ export function MedGlowCalendar({
   userId,
   defaultExpanded = false,
   showManageList = false,
+  onInteractionChange,
 }: {
   userId: string
   defaultExpanded?: boolean
   /** When true (Body tab), always show med list under calendar. */
   showManageList?: boolean
+  /** True while calendar expanded or any med sheet/modal is open — parent can lock home swipe. */
+  onInteractionChange?: (active: boolean) => void
 }) {
   const reduceMotion = useReducedMotion()
   const [meds, setMeds] = useState<Medication[]>([])
@@ -90,6 +93,13 @@ export function MedGlowCalendar({
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const today = useMemo(() => new Date(), [])
+
+  useEffect(() => {
+    const active =
+      expanded || editTarget !== null || selectedDay !== null || manageOpen
+    onInteractionChange?.(active)
+    return () => onInteractionChange?.(false)
+  }, [expanded, editTarget, selectedDay, manageOpen, onInteractionChange])
 
   const rangeFrom = format(addDays(startOfMonth(month), -7), 'yyyy-MM-dd')
   const rangeTo = format(addDays(endOfMonth(month), 7), 'yyyy-MM-dd')
