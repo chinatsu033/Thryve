@@ -39,6 +39,7 @@ export interface EmotionEntry {
   createdAt: string
 }
 
+/** quality: 1–7 (永夜→日光); legacy rows may still be 1–10. interruptions kept for old data (new saves use 0). */
 export interface SleepEntry {
   id: string
   profileId: string

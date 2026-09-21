@@ -8,6 +8,7 @@ import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { listDepressives, listEmotions, listSleeps } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
+import { sleepQualityLabel } from '../lib/sleep'
 import type { DepressiveEntry, EmotionEntry, SleepEntry } from '../types'
 
 type Layer = 'landing' | 'dashboard'
@@ -233,7 +234,7 @@ export function HomePage() {
               )}
               {latestSleep ? (
                 <p style={{ marginTop: 10 }}>
-                  最近睡眠质量：<strong>{latestSleep.quality}/10</strong>
+                  最近睡眠：<strong>{sleepQualityLabel(latestSleep.quality)}</strong>
                   <span className="hint"> · {latestSleep.date}</span>
                 </p>
               ) : null}

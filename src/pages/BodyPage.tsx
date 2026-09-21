@@ -3,9 +3,11 @@ import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { SleepFlowSheet } from '../components/SleepFlowSheet'
 import { Button, Empty, Field, Modal, MoodSlider, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
+import { sleepQualityLabel } from '../lib/sleep'
 import {
   deleteDepressive,
   deleteEating,
@@ -130,7 +132,7 @@ export function BodyPage() {
         </motion.div>
       </AnimatePresence>
 
-      <SleepModal
+      <SleepFlowSheet
         open={modal === 'sleep'}
         onClose={() => setModal(null)}
         onSave={async (entry) => {
@@ -179,10 +181,9 @@ function SleepList({
       {items.map((s) => (
         <div key={s.id} className="list-item">
           <div>
-            <strong>{s.date}</strong> · 质量 {s.quality}/10
+            <strong>{s.date}</strong> · {sleepQualityLabel(s.quality)}
             <div className="hint">
               {s.bedtime || '—'} → {s.wakeTime || '—'}
-              {s.interruptions ? ` · 中断 ${s.interruptions} 次` : ''}
             </div>
             {s.notes ? <p style={{ margin: '6px 0 0' }}>{s.notes}</p> : null}
           </div>
@@ -266,64 +267,6 @@ function DepList({
         </div>
       ))}
     </div>
-  )
-}
-
-function SleepModal({
-  open,
-  onClose,
-  onSave,
-}: {
-  open: boolean
-  onClose: () => void
-  onSave: (e: Omit<SleepEntry, 'id' | 'profileId' | 'createdAt'>) => Promise<void>
-}) {
-  const [date, setDate] = useState(todayStr())
-  const [bedtime, setBedtime] = useState('23:00')
-  const [wakeTime, setWakeTime] = useState('07:00')
-  const [quality, setQuality] = useState(5)
-  const [interruptions, setInterruptions] = useState(0)
-  const [notes, setNotes] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  return (
-    <Modal open={open} onClose={onClose} title="睡眠记录">
-      <Field label="日期">
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </Field>
-      <div className="row">
-        <Field label="入睡">
-          <input type="time" value={bedtime} onChange={(e) => setBedtime(e.target.value)} />
-        </Field>
-        <Field label="起床">
-          <input type="time" value={wakeTime} onChange={(e) => setWakeTime(e.target.value)} />
-        </Field>
-      </div>
-      <MoodSlider value={quality} onChange={setQuality} label="睡眠质量（1–10）" />
-      <Field label="夜间中断次数">
-        <input
-          type="number"
-          min={0}
-          value={interruptions}
-          onChange={(e) => setInterruptions(Number(e.target.value))}
-        />
-      </Field>
-      <Field label="备注">
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
-      </Field>
-      <Button
-        block
-        disabled={busy}
-        onClick={() => {
-          setBusy(true)
-          void onSave({ date, bedtime, wakeTime, quality, interruptions, notes: notes.trim() }).finally(
-            () => setBusy(false),
-          )
-        }}
-      >
-        保存
-      </Button>
-    </Modal>
   )
 }
 

@@ -27,6 +27,7 @@ import {
   saveAttachment,
 } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
+import { normalizeSleepQuality, sleepQualityLabel } from '../lib/sleep'
 import type {
   AttachmentMeta,
   DepressiveEntry,
@@ -149,7 +150,7 @@ export function SummaryPage() {
         date: format(day, 'M/d', { locale: zhCN }),
         full: key,
         mood: avgMood,
-        sleep: sleep?.quality ?? null,
+        sleep: sleep ? normalizeSleepQuality(sleep.quality) : null,
         appetite: eating?.appetite ?? null,
       }
     })
@@ -174,8 +175,11 @@ export function SummaryPage() {
     }
     if (filteredSleeps.length) {
       const avgQ =
-        filteredSleeps.reduce((a, b) => a + b.quality, 0) / filteredSleeps.length
-      lines.push(`睡眠记录 ${filteredSleeps.length} 天，平均质量 ${avgQ.toFixed(1)}/10。`)
+        filteredSleeps.reduce((a, b) => a + normalizeSleepQuality(b.quality), 0) /
+        filteredSleeps.length
+      lines.push(
+        `睡眠记录 ${filteredSleeps.length} 天，平均约「${sleepQualityLabel(avgQ)}」（1–7 均 ${avgQ.toFixed(1)}）。`,
+      )
     }
     if (filteredEatings.length) {
       const avgA =
@@ -340,6 +344,7 @@ export function SummaryPage() {
                   formatter={(value, name) => {
                     if (value == null) return ['—', String(name)]
                     if (name === '情绪') return [Number(value).toFixed(0), '情绪(0–100)']
+                    if (name === '睡眠质量') return [sleepQualityLabel(Number(value)), '睡眠']
                     return [String(value), String(name)]
                   }}
                 />
