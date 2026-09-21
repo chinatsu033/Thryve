@@ -1,15 +1,17 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 
 type Props = {
-  /** Mood 1–100; numeric value must not be shown in UI. */
-  mood: number
+  /** Mood 1–100; numeric value must not be shown in UI. Defaults to calm/cloudy mid. */
+  mood?: number
+  className?: string
 }
 
 function clamp01(n: number) {
   return Math.min(1, Math.max(0, n))
 }
 
-export function LakeMoodScene({ mood }: Props) {
+export function LakeMoodScene({ mood = 50, className = '' }: Props) {
+  const uid = useId().replace(/:/g, '')
   const t = clamp01((mood - 1) / 99) // 0 = 低谷, 1 = 盛放
   const storm = clamp01(1 - t * 2) // strong when mood low
   const bright = clamp01((t - 0.45) / 0.55)
@@ -50,6 +52,11 @@ export function LakeMoodScene({ mood }: Props) {
   const sunOpacity = bright * 0.95
   const cloudOpacity = 0.25 + storm * 0.65 + (1 - bright) * 0.15
 
+  const skyId = `skyGrad-${uid}`
+  const lakeId = `lakeGrad-${uid}`
+  const mtFarId = `mtFar-${uid}`
+  const mtNearId = `mtNear-${uid}`
+
   const wavePath = (y: number, phase: number) => {
     const pts: string[] = []
     for (let x = 0; x <= 320; x += 16) {
@@ -60,30 +67,30 @@ export function LakeMoodScene({ mood }: Props) {
   }
 
   return (
-    <div className="lake-scene" aria-hidden>
+    <div className={`lake-scene ${className}`.trim()} aria-hidden>
       <svg viewBox="0 0 320 200" className="lake-svg" preserveAspectRatio="xMidYMid slice">
         <defs>
-          <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={skyId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={skyTop} />
             <stop offset="100%" stopColor={skyBot} />
           </linearGradient>
-          <linearGradient id="lakeGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={lakeId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={lakeA} />
             <stop offset="100%" stopColor={lakeB} />
           </linearGradient>
-          <linearGradient id="mtFar" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={mtFarId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#e8eef5" />
             <stop offset="55%" stopColor="#b7c4d6" />
             <stop offset="100%" stopColor="#8fa0b8" />
           </linearGradient>
-          <linearGradient id="mtNear" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={mtNearId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#f4f7fb" />
             <stop offset="40%" stopColor="#c5d0e0" />
             <stop offset="100%" stopColor="#7d8fa8" />
           </linearGradient>
         </defs>
 
-        <rect width="320" height="200" fill="url(#skyGrad)" />
+        <rect width="320" height="200" fill={`url(#${skyId})`} />
 
         {/* Sun */}
         <g opacity={sunOpacity} className={bright > 0.3 ? 'lake-sun' : undefined}>
@@ -103,7 +110,7 @@ export function LakeMoodScene({ mood }: Props) {
         {/* Far mountains */}
         <path
           d="M0 118 L35 78 L55 95 L85 58 L115 88 L145 48 L175 82 L200 62 L230 92 L260 55 L290 85 L320 70 L320 130 L0 130 Z"
-          fill="url(#mtFar)"
+          fill={`url(#${mtFarId})`}
           opacity="0.85"
         />
         {/* Snow caps */}
@@ -114,12 +121,12 @@ export function LakeMoodScene({ mood }: Props) {
         {/* Near foothills */}
         <path
           d="M0 128 L40 110 L90 122 L140 105 L200 120 L260 108 L320 118 L320 145 L0 145 Z"
-          fill="url(#mtNear)"
+          fill={`url(#${mtNearId})`}
           opacity="0.95"
         />
 
         {/* Lake */}
-        <path d={wavePath(128, 0)} fill="url(#lakeGrad)" className="lake-water" />
+        <path d={wavePath(128, 0)} fill={`url(#${lakeId})`} className="lake-water" />
         <path
           d={wavePath(138, 40)}
           fill={lakeB}
