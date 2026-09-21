@@ -7,25 +7,15 @@ import { deleteProfileData, exportProfile, importProfile } from '../lib/db'
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
-  type MedicalHistory,
   type ProfileExport,
   type ThemeConfig,
 } from '../types'
 
 export function SettingsPage() {
-  const { profile, setTheme, setMedicalHistory, logout, refreshProfiles } = useAuth()
+  const { profile, setTheme, logout, refreshProfiles } = useAuth()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
-  const [mh, setMh] = useState<MedicalHistory>(
-    profile?.medicalHistory ?? {
-      diagnoses: '',
-      medications: '',
-      allergies: '',
-      notes: '',
-      skipped: false,
-    },
-  )
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
   const [importName, setImportName] = useState('')
   const [importPass, setImportPass] = useState('')
@@ -43,16 +33,6 @@ export function SettingsPage() {
   const saveCustomTheme = async () => {
     await setTheme(custom)
     setMsg('自定义主题已保存')
-  }
-
-  const saveMh = async () => {
-    await setMedicalHistory({ ...mh, skipped: false })
-    setMsg('病史已更新')
-  }
-
-  const skipMh = async () => {
-    await setMedicalHistory({ ...mh, skipped: true })
-    setMsg('已标记为不愿透露病史')
   }
 
   const doExport = async () => {
@@ -101,7 +81,7 @@ export function SettingsPage() {
   }
 
   return (
-    <Page title="设置" sub="主题、病史、导出导入与隐私。">
+    <Page title="设置" sub="主题、导出导入与隐私。">
       <Disclaimer />
       {msg ? (
         <Card>
@@ -160,37 +140,6 @@ export function SettingsPage() {
         <Button onClick={() => void saveCustomTheme()}>保存自定义主题</Button>
       </Card>
 
-      <Card title="病史（可随时修改）">
-        <Field label="既往诊断">
-          <textarea
-            value={mh.diagnoses}
-            onChange={(e) => setMh({ ...mh, diagnoses: e.target.value })}
-          />
-        </Field>
-        <Field label="当前用药">
-          <textarea
-            value={mh.medications}
-            onChange={(e) => setMh({ ...mh, medications: e.target.value })}
-          />
-        </Field>
-        <Field label="过敏史">
-          <input value={mh.allergies} onChange={(e) => setMh({ ...mh, allergies: e.target.value })} />
-        </Field>
-        <Field label="其他备注">
-          <textarea value={mh.notes} onChange={(e) => setMh({ ...mh, notes: e.target.value })} />
-        </Field>
-        <div className="row">
-          <Button onClick={() => void saveMh()}>保存病史</Button>
-          <Button variant="ghost" onClick={() => void skipMh()}>
-            我不愿意向其他人透露
-          </Button>
-        </div>
-        {profile.medicalHistory.skipped ? (
-          <p className="hint" style={{ marginTop: 10 }}>
-            当前状态：已选择不披露病史。
-          </p>
-        ) : null}
-      </Card>
 
       <Card title="数据导出 / 导入">
         <p className="hint">导出为 JSON，可备份或迁移到另一台设备的新档案。不含密码。</p>

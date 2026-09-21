@@ -13,7 +13,7 @@ export function AuthPage() {
 
   if (!ready) return <div className="loading">加载中…</div>
   if (profile) {
-    return <Navigate to={profile.onboardingDone ? '/' : '/onboarding'} replace />
+    return <Navigate to="/" replace />
   }
 
   const submit = async () => {

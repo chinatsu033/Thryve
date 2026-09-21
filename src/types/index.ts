@@ -125,14 +125,13 @@ export const EMOTION_TAGS = [
 ] as const
 
 export const THEME_PRESETS: Record<string, ThemeConfig> = {
-  宁静蓝: { primary: '#5B6CFF', accent: '#00BFA5', surface: '#F5F7FF' },
   暖阳橙: { primary: '#FF8A65', accent: '#FFD54F', surface: '#FFF8F3' },
   草木绿: { primary: '#43A047', accent: '#26A69A', surface: '#F3FAF4' },
   暮紫: { primary: '#7E57C2', accent: '#EC407A', surface: '#F8F5FC' },
   雾灰: { primary: '#607D8B', accent: '#90A4AE', surface: '#F5F7F8' },
 }
 
-export const DEFAULT_THEME: ThemeConfig = THEME_PRESETS['宁静蓝']
+export const DEFAULT_THEME: ThemeConfig = THEME_PRESETS['暖阳橙']
 
 export const DEFAULT_CHECKLIST: DepressiveChecklist = {
   lowEnergy: false,

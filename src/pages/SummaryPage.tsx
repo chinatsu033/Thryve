@@ -190,16 +190,6 @@ export function SummaryPage() {
         `情绪低谷相关记录 ${filteredDeps.length} 条（进行中 ${open}），平均自报严重度 ${avgSev.toFixed(1)}/10。`,
       )
     }
-    if (profile?.medicalHistory && !profile.medicalHistory.skipped) {
-      const mh = profile.medicalHistory
-      if (mh.diagnoses || mh.medications) {
-        lines.push(
-          `病史摘要：诊断「${mh.diagnoses || '未填'}」；用药「${mh.medications || '未填'}」。`,
-        )
-      }
-    } else if (profile?.medicalHistory?.skipped) {
-      lines.push('用户选择不披露病史详情。')
-    }
     lines.push('说明：以上为个人主观记录汇总，不能替代专业诊断。')
     return lines
   }, [filteredEmotions, filteredSleeps, filteredEatings, filteredDeps, profile])

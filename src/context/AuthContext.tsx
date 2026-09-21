@@ -90,10 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           medications: '',
           allergies: '',
           notes: '',
-          skipped: false,
+          skipped: true,
         },
         theme: DEFAULT_THEME,
-        onboardingDone: false,
+        onboardingDone: true,
       }
       await saveProfile(p)
       await setSessionProfileId(p.id)
