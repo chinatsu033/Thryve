@@ -15,7 +15,6 @@ import {
 } from 'recharts'
 import { Button, Card, Disclaimer, Empty, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { uid } from '../lib/crypto'
 import {
   deleteAttachment,
   getAttachmentBlob,
@@ -23,7 +22,6 @@ import {
   listEatings,
   listEmotions,
   listSleeps,
-  saveAttachment,
 } from '../lib/db'
 import { chartEnter } from '../lib/motion'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
@@ -201,26 +199,8 @@ export function SummaryPage() {
     setTimeout(() => setCopyOk(false), 2000)
   }
 
-  const onUpload = async (files: FileList | null) => {
-    if (!files || !profile) return
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') continue
-      if (file.size > 8 * 1024 * 1024) {
-        alert(`${file.name} 超过 8MB，已跳过`)
-        continue
-      }
-      const meta: AttachmentMeta = {
-        id: uid(),
-        profileId: profile.id,
-        name: file.name,
-        mimeType: file.type,
-        size: file.size,
-        createdAt: new Date().toISOString(),
-        note: '',
-      }
-      await saveAttachment(meta, file)
-    }
-    await reload()
+  const onUpload = async (_files: FileList | null) => {
+    alert('云端附件存储尚未开放（MVP）。请先使用「复制文字总结」或导出 JSON。')
   }
 
   const removeAttach = async (id: string) => {
@@ -389,7 +369,8 @@ export function SummaryPage() {
       </Card>
 
       <Card title="附件（PDF / 图片）" className="no-print">
-        <Field label="上传到本机 IndexedDB（单文件 ≤ 8MB）">
+        <p className="hint">云端附件（Storage）暂未开放；MVP 请用文字总结或 JSON 导出。</p>
+        <Field label="上传（暂不可用）">
           <input
             type="file"
             accept="image/*,application/pdf"

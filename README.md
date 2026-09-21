@@ -1,31 +1,61 @@
 # Thryve
 
-本地优先的中文心理状态打卡与就医总结工具（Vite + React + TypeScript）。  
+中文心理状态打卡与就医总结工具（Vite + React + TypeScript + **Supabase 邮箱登录 / 云端同步**）。  
 **本工具仅用于个人状态记录与就医沟通，不能替代专业医疗诊断或治疗。**
 
-在线演示（需开启 GitHub Pages）：  
-https://chinatsu033.github.io/Thryve/
+生产站点（Cloudflare）：  
+https://thryve.chinatsu033.org
 
 ## 功能概览
 
-- **本地多档案**：名称 + 密码（Web Crypto PBKDF2 哈希），各档案 IndexedDB 数据隔离
-- **首次引导**：可选病史，或点「我不愿意向其他人透露」跳过（设置中可改）
-- **情绪**：当下感受 / 全天总结，评分 1–10、标签、备注
+- **邮箱注册 / 登录**：Supabase Auth（email + password），会话持久化
+- **云端同步**：情绪 / 睡眠 / 饮食按 `auth.uid()` 隔离（RLS）
+- **情绪**：当下感受，评分、标签、来源、备注
 - **身心**：睡眠与轻量饮食打卡
-- **就医总结**：7 / 14 / 30 / 自定义区间、Recharts 趋势图、情绪日历热力图、自动要点、复制文字、打印 CSS、PDF/图片附件存 IndexedDB
-- **主题**：Material 风格圆角扁平 UI，预设 + 色板，CSS 变量按档案保存
-- **导出 / 导入**：按档案 JSON 备份迁移
+- **就医总结**：7 / 14 / 30 / 自定义区间、趋势图、情绪日历、复制文字、打印
+- **主题**：按账户 `profiles.theme` 保存
+- **导出 / 导入**：从云端导出 JSON；导入合并到当前账户
+- **附件**：MVP 暂未开放云端 Storage
 
 ## 技术栈
 
 - Vite 8 + React 19 + TypeScript
-- React Router（`basename: /Thryve`，适配 GitHub Pages）
-- Framer Motion、Recharts、idb、date-fns
-- **无后端**，数据仅在浏览器本地
+- React Router（`basename: /`，适配 Cloudflare 根域名）
+- Supabase Auth + Postgres（RLS）
+- Framer Motion、Recharts、date-fns
+
+> 历史 GitHub Pages 路径为 `/Thryve/`；现默认 `base: '/'` 用于 `thryve.chinatsu033.org`。
+
+## 环境变量
+
+复制 `.env.example` 为 `.env`（**不要提交真实密钥**）：
+
+```bash
+VITE_SUPABASE_URL=https://srhoswkgjxqmasmaqjfg.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
+```
+
+Cloudflare Pages：在项目 Settings → Environment variables 中配置同名变量。
+
+## Supabase 配置（部署前必做）
+
+1. **应用迁移**  
+   SQL 文件：`supabase/migrations/20260921_init_cloud_schema.sql`  
+   可用 MCP `apply_migration`（project_id `srhoswkgjxqmasmaqjfg`）或 Dashboard SQL Editor。
+
+2. **Auth URL**（Authentication → URL Configuration）  
+   - Site URL：`https://thryve.chinatsu033.org`  
+   - Redirect URLs 另加：`http://localhost:5173/**`、`http://127.0.0.1:5173/**`
+
+3. **获取 anon key**  
+   Project Settings → API → `anon` `public`，填入 `VITE_SUPABASE_ANON_KEY`（切勿使用 service_role）。
+
+4. （可选）关闭「Confirm email」以便注册后立刻登录，或保留验证并配置邮件模板。
 
 ## 本地运行
 
 ```bash
+cp .env.example .env   # 填入真实 anon key
 npm install
 npm run dev
 ```
@@ -37,44 +67,32 @@ npm run build
 npm run preview
 ```
 
-> **Base path**：生产构建使用 `base: '/Thryve/'`（见 `vite.config.ts`）。  
-> 若部署到站点根路径，请改为 `base: '/'`，并把 `BrowserRouter` 的 `basename` 去掉或改为 `'/'`。
+构建时若未设置 env，客户端会优雅降级（登录页提示未配置）；生产部署必须注入真实变量。
 
-## 部署到 GitHub Pages
+## 部署到 Cloudflare Pages
 
-1. 推送 `main` 分支（本仓库已配置好 base path）。
-2. 仓库 **Settings → Pages**：
-   - Source：`Deploy from a branch`
-   - Branch：`main`，文件夹选 **`/docs`** 或使用 Actions；若用分支直出，可把 `dist` 内容发布到 `gh-pages` 分支，或启用 GitHub Action。
-3. **推荐方式（静态分支）**：
-
-```bash
-npm run build
-# 将 dist 推到 gh-pages 分支，例如：
-npx gh-pages -d dist
-```
-
-或在 Pages 设置中使用 **GitHub Actions** 工作流自动构建 `dist`。
-
-4. 访问：`https://chinatsu033.github.io/Thryve/`
-
-`public/404.html` 提供简单的 SPA 路由回退（刷新子路径时回到首页并恢复 URL）。
+1. 连接仓库 `chinatsu033/Thryve`，构建命令 `npm run build`，输出目录 `dist`。
+2. 设置环境变量 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`。
+3. 自定义域：`thryve.chinatsu033.org`（根路径，`base: '/'`）。
+4. SPA 回退：将所有路由指向 `index.html`。
 
 ## 隐私说明
 
-- 数据保存在本机浏览器 **IndexedDB**，不会上传服务器。
-- 密码仅存哈希，清除站点数据或换设备会丢失记录，请用「设置 → 导出」备份。
-- 请勿在公共电脑上留下敏感信息；用完可退出并考虑删除档案。
+- 数据存储在你的 Supabase 项目中，由 RLS 限制为仅本人可读写。
+- 请勿在公共电脑保持登录；退出请用「设置 → 退出登录」。
+- 本工具不能替代专业医疗诊断或治疗。
 
-## 开发说明
+## 目录
 
 ```
 src/
-  components/   # UI、布局
-  context/      # 登录态与主题
-  lib/          # crypto、IndexedDB、theme
+  components/   # UI、流程表单
+  context/      # Auth + 主题
+  lib/          # supabase、云端 CRUD、theme
   pages/        # 各功能页
   types/        # 类型与预设
+supabase/
+  migrations/   # Postgres + RLS
 ```
 
 ## License

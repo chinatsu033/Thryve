@@ -2,8 +2,7 @@ import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { generateSalt, hashPassword, uid } from '../lib/crypto'
-import { deleteProfileData, exportProfile, importProfile } from '../lib/db'
+import { deleteAllUserData, exportProfile, importIntoCurrentUser } from '../lib/db'
 import {
   DEFAULT_THEME,
   THEME_PRESETS,
@@ -12,13 +11,12 @@ import {
 } from '../types'
 
 export function SettingsPage() {
-  const { profile, setTheme, logout, refreshProfiles } = useAuth()
+  const { profile, setTheme, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
-  const [importName, setImportName] = useState('')
-  const [importPass, setImportPass] = useState('')
+  const [displayName, setDisplayName] = useState(profile?.name ?? '')
 
   if (!profile) return null
 
@@ -35,16 +33,26 @@ export function SettingsPage() {
     setMsg('自定义主题已保存')
   }
 
+  const saveDisplayName = async () => {
+    const name = displayName.trim()
+    if (!name) {
+      setMsg('显示名称不能为空')
+      return
+    }
+    await updateProfile({ name })
+    setMsg('显示名称已更新')
+  }
+
   const doExport = async () => {
-    const data = await exportProfile(profile.id, false)
+    const data = await exportProfile(profile.id, profile.email)
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `psych-journal-${profile.name}-${new Date().toISOString().slice(0, 10)}.json`
+    a.download = `thryve-${profile.name}-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    setMsg('导出完成（不含密码哈希）')
+    setMsg('已从云端导出 JSON 备份')
   }
 
   const doImport = async (file: File) => {
@@ -52,15 +60,10 @@ export function SettingsPage() {
       const text = await file.text()
       const data = JSON.parse(text) as ProfileExport
       if (data.version !== 1) throw new Error('不支持的导出版本')
-      const name = importName.trim() || `${data.profile.name || '导入'}-${Date.now().toString(36).slice(-4)}`
-      const pass = importPass || uid().slice(0, 8)
-      const salt = await generateSalt()
-      const passwordHash = await hashPassword(pass, salt)
-      await importProfile(data, { newId: uid(), name, passwordHash, salt })
-      await refreshProfiles()
-      setMsg(`导入成功：档案「${name}」，密码为你设置的导入密码（若未填则为随机）。请退出后用新档案登录。`)
-      setImportName('')
-      setImportPass('')
+      const stats = await importIntoCurrentUser(profile.id, data)
+      setMsg(
+        `已导入到当前账户：情绪 ${stats.emotions}、睡眠 ${stats.sleeps}、饮食 ${stats.eatings} 条`,
+      )
     } catch (e) {
       setMsg(`导入失败：${e instanceof Error ? e.message : '未知错误'}`)
     }
@@ -71,17 +74,15 @@ export function SettingsPage() {
     navigate('/auth', { replace: true })
   }
 
-  const doDelete = async () => {
-    if (!confirm(`确定永久删除档案「${profile.name}」及全部本地数据？此操作不可恢复。`)) return
-    if (!confirm('再次确认：将删除情绪、睡眠、饮食与附件等本地数据。')) return
-    await deleteProfileData(profile.id)
-    await logout()
-    await refreshProfiles()
-    navigate('/auth', { replace: true })
+  const doClearCloud = async () => {
+    if (!confirm('确定清空当前账户的云端情绪 / 睡眠 / 饮食记录？此操作不可恢复。')) return
+    if (!confirm('再次确认：将删除云端打卡数据（不会删除登录账号）。')) return
+    await deleteAllUserData(profile.id)
+    setMsg('云端打卡数据已清空')
   }
 
   return (
-    <Page title="设置" sub="主题、导出导入与隐私。">
+    <Page title="设置" sub="主题、导出与账户。">
       <Disclaimer />
       {msg ? (
         <Card>
@@ -89,7 +90,17 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
-      <Card title="主题（按档案保存）">
+      <Card title="个人资料">
+        <Field label="邮箱">
+          <input value={profile.email} disabled readOnly />
+        </Field>
+        <Field label="显示名称">
+          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+        </Field>
+        <Button onClick={() => void saveDisplayName()}>保存名称</Button>
+      </Card>
+
+      <Card title="主题（按账户保存）">
         <div className="preset-grid">
           {Object.entries(THEME_PRESETS).map(([name, t]) => {
             const active =
@@ -140,26 +151,10 @@ export function SettingsPage() {
         <Button onClick={() => void saveCustomTheme()}>保存自定义主题</Button>
       </Card>
 
-
       <Card title="数据导出 / 导入">
-        <p className="hint">导出为 JSON，可备份或迁移到另一台设备的新档案。不含密码。</p>
-        <Button onClick={() => void doExport()}>导出当前档案</Button>
+        <p className="hint">从云端导出 JSON 备份；导入会合并到当前登录账户。</p>
+        <Button onClick={() => void doExport()}>导出云端数据</Button>
         <div style={{ height: 16 }} />
-        <Field label="导入为新档案名称">
-          <input
-            value={importName}
-            onChange={(e) => setImportName(e.target.value)}
-            placeholder="留空则自动生成"
-          />
-        </Field>
-        <Field label="新档案密码" hint="导入后用此密码登录新档案">
-          <input
-            type="password"
-            value={importPass}
-            onChange={(e) => setImportPass(e.target.value)}
-            placeholder="至少 4 位，留空则随机"
-          />
-        </Field>
         <input
           ref={fileRef}
           type="file"
@@ -172,29 +167,35 @@ export function SettingsPage() {
           }}
         />
         <Button variant="accent" onClick={() => fileRef.current?.click()}>
-          选择 JSON 导入
+          选择 JSON 导入到本账户
         </Button>
       </Card>
 
       <Card title="账户">
         <p>
-          当前档案：<strong>{profile.name}</strong>
+          当前用户：<strong>{profile.name}</strong>
+          {profile.email ? (
+            <>
+              {' '}
+              <span className="hint">({profile.email})</span>
+            </>
+          ) : null}
         </p>
         <div className="row">
           <Button variant="ghost" onClick={() => void doLogout()}>
             退出登录
           </Button>
-          <Button variant="danger" onClick={() => void doDelete()}>
-            删除本档案
+          <Button variant="danger" onClick={() => void doClearCloud()}>
+            清空云端打卡
           </Button>
         </div>
       </Card>
 
       <Card title="隐私说明">
         <ul className="summary-bullets">
-          <li>所有数据仅存储在本浏览器 IndexedDB，不会上传到任何服务器。</li>
-          <li>密码使用 Web Crypto PBKDF2 哈希，本地校验。</li>
-          <li>清除浏览器数据或更换设备会导致数据丢失，请定期导出备份。</li>
+          <li>登录后数据保存在 Supabase 云端，按账户（auth.uid）隔离，启用 RLS。</li>
+          <li>请使用自己的邮箱与密码；不要在公共电脑保存登录态。</li>
+          <li>附件上传（PDF/图片）云端存储尚未开放（MVP）。</li>
           <li>本工具不能替代专业医疗诊断或治疗。</li>
         </ul>
       </Card>

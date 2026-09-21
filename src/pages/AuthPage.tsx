@@ -4,11 +4,13 @@ import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 
 export function AuthPage() {
-  const { profile, profiles, login, register, ready } = useAuth()
-  const [mode, setMode] = useState<'login' | 'register'>(profiles.length ? 'login' : 'register')
-  const [name, setName] = useState(profiles[0]?.name ?? '')
+  const { profile, login, register, ready, configured } = useAuth()
+  const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
   if (!ready) return <div className="loading">加载中…</div>
@@ -18,18 +20,37 @@ export function AuthPage() {
 
   const submit = async () => {
     setError('')
+    setInfo('')
     setBusy(true)
     try {
-      const res = mode === 'login' ? await login(name, password) : await register(name, password)
-      if (!res.ok) setError(res.error)
+      const res =
+        mode === 'login'
+          ? await login(email, password)
+          : await register(email, password, displayName)
+      if (!res.ok) {
+        // Registration may succeed pending email confirm — show as info if message hints
+        if (res.error.includes('注册成功') || res.error.includes('邮箱验证')) {
+          setInfo(res.error)
+        } else {
+          setError(res.error)
+        }
+      }
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Page back={false} title="Thryve" sub="本地多档案 · 隐私优先 · 就医沟通助手">
+    <Page back={false} title="Thryve" sub="邮箱登录 · 云端同步 · 就医沟通助手">
       <Disclaimer />
+      {!configured ? (
+        <Card>
+          <p className="error-text" style={{ margin: 0 }}>
+            尚未配置云端环境变量（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。部署后请在 Cloudflare
+            Pages 中设置。
+          </p>
+        </Card>
+      ) : null}
       <Card>
         <div className="chip-row">
           <button
@@ -44,39 +65,38 @@ export function AuthPage() {
             className={`chip ${mode === 'register' ? 'active' : ''}`}
             onClick={() => setMode('register')}
           >
-            新建档案
+            注册
           </button>
         </div>
 
-        {mode === 'login' && profiles.length > 0 ? (
-          <Field label="选择档案">
-            <select value={name} onChange={(e) => setName(e.target.value)} aria-label="选择档案">
-              <option value="">请选择…</option>
-              {profiles.map((p) => (
-                <option key={p.id} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </Field>
-        ) : (
-          <Field label="档案名称" hint="仅保存在本设备，可随意取名">
+        {mode === 'register' ? (
+          <Field label="显示名称" hint="可选，默认定邮箱前缀">
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="username"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              autoComplete="nickname"
               placeholder="例如：小明"
             />
           </Field>
-        )}
+        ) : null}
 
-        <Field label="密码" hint="使用 Web Crypto 本地哈希，不会上传">
+        <Field label="邮箱">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            placeholder="you@example.com"
+          />
+        </Field>
+
+        <Field label="密码" hint={mode === 'register' ? '至少 6 位' : undefined}>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            placeholder="至少 4 位"
+            placeholder="至少 6 位"
             onKeyDown={(e) => {
               if (e.key === 'Enter') void submit()
             }}
@@ -84,13 +104,14 @@ export function AuthPage() {
         </Field>
 
         {error ? <p className="error-text">{error}</p> : null}
+        {info ? <p className="hint">{info}</p> : null}
 
-        <Button block disabled={busy} onClick={() => void submit()}>
-          {busy ? '请稍候…' : mode === 'login' ? '进入' : '创建并进入'}
+        <Button block disabled={busy || !configured} onClick={() => void submit()}>
+          {busy ? '请稍候…' : mode === 'login' ? '登录' : '注册并进入'}
         </Button>
       </Card>
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>
-        数据仅存于本机浏览器 IndexedDB，换设备需自行导出导入。
+        登录后数据同步至云端（按账户隔离）。换设备用同一邮箱即可继续记录。
       </p>
     </Page>
   )

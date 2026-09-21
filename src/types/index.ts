@@ -12,20 +12,22 @@ export interface MedicalHistory {
   skipped: boolean
 }
 
+/** Cloud profile (maps to public.profiles; id = auth.uid()). */
 export interface Profile {
   id: string
   name: string
-  passwordHash: string
-  salt: string
+  email: string
   createdAt: string
-  medicalHistory: MedicalHistory
+  updatedAt?: string
   theme: ThemeConfig
-  onboardingDone: boolean
+  /** Kept for export compatibility; not stored in cloud MVP schema. */
+  medicalHistory?: MedicalHistory
+  onboardingDone?: boolean
 }
 
 export type EmotionMode = 'current' | 'daily'
 
-/** mood: 1–100 (legacy IndexedDB rows may still be 1–10 without `sources`). */
+/** mood: 1–100 (legacy rows may still be 1–10 without `sources`). */
 export interface EmotionEntry {
   id: string
   profileId: string
@@ -99,10 +101,7 @@ export interface AttachmentMeta {
 export interface ProfileExport {
   version: 1
   exportedAt: string
-  profile: Omit<Profile, 'passwordHash' | 'salt'> & {
-    passwordHash?: string
-    salt?: string
-  }
+  profile: Omit<Profile, 'email'> & { email?: string }
   emotions: EmotionEntry[]
   sleeps: SleepEntry[]
   eatings: EatingEntry[]

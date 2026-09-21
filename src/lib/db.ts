@@ -1,17 +1,12 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
-import type {
-  AttachmentMeta,
-  DepressiveEntry,
-  EatingEntry,
-  EmotionEntry,
-  Profile,
-  ProfileExport,
-  SleepEntry,
-} from '../types'
-import { DEFAULT_THEME } from '../types'
+/**
+ * Cloud-first data layer (Supabase).
+ * App types stay camelCase; DB columns are snake_case.
+ * profileId in app entries maps to user_id.
+ */
 import { isLegacyMoodEntry, normalizeMood } from './mood'
+import { requireSupabase } from './supabase'
+import { DEFAULT_THEME, type EatingEntry, type EmotionEntry, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
 
-/** Ensure sources exists; scale legacy 1–10 mood → 1–100 in memory (does not rewrite DB). */
 function hydrateEmotion(e: EmotionEntry): EmotionEntry {
   const sources = e.sources ?? []
   if (isLegacyMoodEntry(e)) {
@@ -20,305 +15,316 @@ function hydrateEmotion(e: EmotionEntry): EmotionEntry {
   return { ...e, sources }
 }
 
-
-interface PsychDB extends DBSchema {
-  profiles: {
-    key: string
-    value: Profile
-    indexes: { 'by-name': string }
-  }
-  emotions: {
-    key: string
-    value: EmotionEntry
-    indexes: { 'by-profile': string; 'by-profile-date': [string, string] }
-  }
-  sleeps: {
-    key: string
-    value: SleepEntry
-    indexes: { 'by-profile': string; 'by-profile-date': [string, string] }
-  }
-  eatings: {
-    key: string
-    value: EatingEntry
-    indexes: { 'by-profile': string; 'by-profile-date': [string, string] }
-  }
-  depressives: {
-    key: string
-    value: DepressiveEntry
-    indexes: { 'by-profile': string }
-  }
-  attachments: {
-    key: string
-    value: AttachmentMeta
-    indexes: { 'by-profile': string }
-  }
-  attachmentBlobs: {
-    key: string
-    value: { id: string; blob: Blob }
-  }
-  session: {
-    key: string
-    value: { key: string; profileId: string | null }
-  }
-}
-
-const DB_NAME = 'psych-state-journal'
-const DB_VERSION = 1
-
-let dbPromise: Promise<IDBPDatabase<PsychDB>> | null = null
-
-function getDB() {
-  if (!dbPromise) {
-    dbPromise = openDB<PsychDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        const profiles = db.createObjectStore('profiles', { keyPath: 'id' })
-        profiles.createIndex('by-name', 'name', { unique: true })
-
-        const emotions = db.createObjectStore('emotions', { keyPath: 'id' })
-        emotions.createIndex('by-profile', 'profileId')
-        emotions.createIndex('by-profile-date', ['profileId', 'recordedAt'])
-
-        const sleeps = db.createObjectStore('sleeps', { keyPath: 'id' })
-        sleeps.createIndex('by-profile', 'profileId')
-        sleeps.createIndex('by-profile-date', ['profileId', 'date'])
-
-        const eatings = db.createObjectStore('eatings', { keyPath: 'id' })
-        eatings.createIndex('by-profile', 'profileId')
-        eatings.createIndex('by-profile-date', ['profileId', 'date'])
-
-        const depressives = db.createObjectStore('depressives', { keyPath: 'id' })
-        depressives.createIndex('by-profile', 'profileId')
-
-        const attachments = db.createObjectStore('attachments', { keyPath: 'id' })
-        attachments.createIndex('by-profile', 'profileId')
-
-        db.createObjectStore('attachmentBlobs', { keyPath: 'id' })
-        db.createObjectStore('session', { keyPath: 'key' })
-      },
-    })
-  }
-  return dbPromise
-}
-
-// —— Session ——
-export async function getSessionProfileId(): Promise<string | null> {
-  const db = await getDB()
-  const row = await db.get('session', 'current')
-  return row?.profileId ?? null
-}
-
-export async function setSessionProfileId(profileId: string | null): Promise<void> {
-  const db = await getDB()
-  await db.put('session', { key: 'current', profileId })
-}
-
-// —— Profiles ——
-export async function listProfiles(): Promise<Profile[]> {
-  const db = await getDB()
-  return db.getAll('profiles')
-}
-
-export async function getProfile(id: string): Promise<Profile | undefined> {
-  const db = await getDB()
-  return db.get('profiles', id)
-}
-
-export async function getProfileByName(name: string): Promise<Profile | undefined> {
-  const db = await getDB()
-  return db.getFromIndex('profiles', 'by-name', name)
-}
-
-export async function saveProfile(profile: Profile): Promise<void> {
-  const db = await getDB()
-  await db.put('profiles', profile)
-}
-
-export async function deleteProfileData(profileId: string): Promise<void> {
-  const db = await getDB()
-  const tx = db.transaction(
-    ['profiles', 'emotions', 'sleeps', 'eatings', 'depressives', 'attachments', 'attachmentBlobs', 'session'],
-    'readwrite',
-  )
-  await tx.objectStore('profiles').delete(profileId)
-  for (const store of ['emotions', 'sleeps', 'eatings', 'depressives', 'attachments'] as const) {
-    const idx = tx.objectStore(store).index('by-profile')
-    let cursor = await idx.openCursor(profileId)
-    while (cursor) {
-      const id = cursor.value.id
-      await cursor.delete()
-      if (store === 'attachments') {
-        await tx.objectStore('attachmentBlobs').delete(id)
-      }
-      cursor = await cursor.continue()
+function parseTheme(raw: unknown): ThemeConfig {
+  if (raw && typeof raw === 'object') {
+    const t = raw as Partial<ThemeConfig>
+    if (t.primary && t.accent && t.surface) {
+      return { primary: t.primary, accent: t.accent, surface: t.surface }
     }
   }
-  const session = await tx.objectStore('session').get('current')
-  if (session?.profileId === profileId) {
-    await tx.objectStore('session').put({ key: 'current', profileId: null })
+  return DEFAULT_THEME
+}
+
+type ProfileRow = {
+  id: string
+  display_name: string | null
+  theme: unknown
+  created_at: string
+  updated_at: string
+}
+
+type EmotionRow = {
+  id: string
+  user_id: string
+  mode: string
+  mood: number
+  tags: string[] | null
+  sources: string[] | null
+  notes: string | null
+  recorded_at: string
+  created_at: string
+}
+
+type SleepRow = {
+  id: string
+  user_id: string
+  date: string
+  bedtime: string | null
+  wake_time: string | null
+  quality: number
+  interruptions: number | null
+  notes: string | null
+  created_at: string
+}
+
+type EatingRow = {
+  id: string
+  user_id: string
+  date: string
+  meals: number
+  appetite: number
+  notes: string | null
+  created_at: string
+}
+
+function rowToProfile(row: ProfileRow, email: string): Profile {
+  return {
+    id: row.id,
+    name: row.display_name?.trim() || email.split('@')[0] || '用户',
+    email,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    theme: parseTheme(row.theme),
+    onboardingDone: true,
   }
-  await tx.done
 }
 
-// —— Generic CRUD helpers ——
-async function listByProfile<T extends { profileId: string }>(
-  store: 'emotions' | 'sleeps' | 'eatings' | 'depressives' | 'attachments',
-  profileId: string,
-): Promise<T[]> {
-  const db = await getDB()
-  const rows = await db.getAllFromIndex(store, 'by-profile', profileId)
-  return rows as unknown as T[]
-}
-
-export const listEmotions = async (pid: string) => {
-  const rows = await listByProfile<EmotionEntry>('emotions', pid)
-  return rows.map(hydrateEmotion)
-}
-export const listSleeps = (pid: string) => listByProfile<SleepEntry>('sleeps', pid)
-export const listEatings = (pid: string) => listByProfile<EatingEntry>('eatings', pid)
-export const listDepressives = (pid: string) => listByProfile<DepressiveEntry>('depressives', pid)
-export const listAttachments = (pid: string) => listByProfile<AttachmentMeta>('attachments', pid)
-
-export async function putEmotion(e: EmotionEntry) {
-  await (await getDB()).put('emotions', e)
-}
-export async function deleteEmotion(id: string) {
-  await (await getDB()).delete('emotions', id)
-}
-export async function putSleep(e: SleepEntry) {
-  await (await getDB()).put('sleeps', e)
-}
-export async function deleteSleep(id: string) {
-  await (await getDB()).delete('sleeps', id)
-}
-export async function putEating(e: EatingEntry) {
-  await (await getDB()).put('eatings', e)
-}
-export async function deleteEating(id: string) {
-  await (await getDB()).delete('eatings', id)
-}
-export async function putDepressive(e: DepressiveEntry) {
-  await (await getDB()).put('depressives', e)
-}
-export async function deleteDepressive(id: string) {
-  await (await getDB()).delete('depressives', id)
-}
-
-export async function saveAttachment(meta: AttachmentMeta, blob: Blob) {
-  const db = await getDB()
-  const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite')
-  await tx.objectStore('attachments').put(meta)
-  await tx.objectStore('attachmentBlobs').put({ id: meta.id, blob })
-  await tx.done
-}
-
-export async function getAttachmentBlob(id: string): Promise<Blob | undefined> {
-  const row = await (await getDB()).get('attachmentBlobs', id)
-  return row?.blob
-}
-
-export async function deleteAttachment(id: string) {
-  const db = await getDB()
-  const tx = db.transaction(['attachments', 'attachmentBlobs'], 'readwrite')
-  await tx.objectStore('attachments').delete(id)
-  await tx.objectStore('attachmentBlobs').delete(id)
-  await tx.done
-}
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      resolve(result.split(',')[1] ?? '')
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
+function rowToEmotion(row: EmotionRow): EmotionEntry {
+  return hydrateEmotion({
+    id: row.id,
+    profileId: row.user_id,
+    mode: (row.mode === 'daily' ? 'daily' : 'current') as EmotionEntry['mode'],
+    mood: row.mood,
+    tags: row.tags ?? [],
+    sources: row.sources ?? [],
+    notes: row.notes ?? '',
+    recordedAt: row.recorded_at,
+    createdAt: row.created_at,
   })
 }
 
-function base64ToBlob(b64: string, mime: string): Blob {
-  const bin = atob(b64)
-  const bytes = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-  return new Blob([bytes], { type: mime })
+function rowToSleep(row: SleepRow): SleepEntry {
+  return {
+    id: row.id,
+    profileId: row.user_id,
+    date: row.date,
+    bedtime: row.bedtime ?? '',
+    wakeTime: row.wake_time ?? '',
+    quality: row.quality,
+    interruptions: row.interruptions ?? 0,
+    notes: row.notes ?? '',
+    createdAt: row.created_at,
+  }
 }
 
-export async function exportProfile(profileId: string, includePassword = false): Promise<ProfileExport> {
-  const profile = await getProfile(profileId)
+function rowToEating(row: EatingRow): EatingEntry {
+  return {
+    id: row.id,
+    profileId: row.user_id,
+    date: row.date,
+    meals: row.meals,
+    appetite: row.appetite,
+    notes: row.notes ?? '',
+    createdAt: row.created_at,
+  }
+}
+
+export async function ensureProfile(userId: string, email: string, displayName?: string): Promise<Profile> {
+  const sb = requireSupabase()
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle()
+  if (error) throw error
+  if (data) return rowToProfile(data as ProfileRow, email)
+
+  const insert = {
+    id: userId,
+    display_name: displayName?.trim() || email.split('@')[0] || '用户',
+    theme: DEFAULT_THEME,
+  }
+  const { data: created, error: insertErr } = await sb.from('profiles').upsert(insert).select('*').single()
+  if (insertErr) throw insertErr
+  return rowToProfile(created as ProfileRow, email)
+}
+
+export async function getProfile(userId: string, email = ''): Promise<Profile | undefined> {
+  const sb = requireSupabase()
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).maybeSingle()
+  if (error) throw error
+  if (!data) return undefined
+  return rowToProfile(data as ProfileRow, email)
+}
+
+export async function saveProfile(profile: Profile): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('profiles').upsert({
+    id: profile.id,
+    display_name: profile.name,
+    theme: profile.theme,
+    updated_at: new Date().toISOString(),
+  })
+  if (error) throw error
+}
+
+export async function listEmotions(userId: string): Promise<EmotionEntry[]> {
+  const sb = requireSupabase()
+  const { data, error } = await sb.from('emotions').select('*').eq('user_id', userId).order('recorded_at', { ascending: false })
+  if (error) throw error
+  return (data as EmotionRow[] | null)?.map(rowToEmotion) ?? []
+}
+
+export async function putEmotion(e: EmotionEntry): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('emotions').upsert({
+    id: e.id,
+    user_id: e.profileId,
+    mode: e.mode,
+    mood: e.mood,
+    tags: e.tags,
+    sources: e.sources ?? [],
+    notes: e.notes ?? '',
+    recorded_at: e.recordedAt,
+    created_at: e.createdAt,
+  })
+  if (error) throw error
+}
+
+export async function deleteEmotion(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('emotions').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listSleeps(userId: string): Promise<SleepEntry[]> {
+  const sb = requireSupabase()
+  const { data, error } = await sb.from('sleeps').select('*').eq('user_id', userId).order('date', { ascending: false })
+  if (error) throw error
+  return (data as SleepRow[] | null)?.map(rowToSleep) ?? []
+}
+
+export async function putSleep(e: SleepEntry): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('sleeps').upsert({
+    id: e.id,
+    user_id: e.profileId,
+    date: e.date,
+    bedtime: e.bedtime,
+    wake_time: e.wakeTime,
+    quality: e.quality,
+    interruptions: e.interruptions ?? 0,
+    notes: e.notes ?? '',
+    created_at: e.createdAt,
+  })
+  if (error) throw error
+}
+
+export async function deleteSleep(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('sleeps').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listEatings(userId: string): Promise<EatingEntry[]> {
+  const sb = requireSupabase()
+  const { data, error } = await sb.from('eatings').select('*').eq('user_id', userId).order('date', { ascending: false })
+  if (error) throw error
+  return (data as EatingRow[] | null)?.map(rowToEating) ?? []
+}
+
+export async function putEating(e: EatingEntry): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('eatings').upsert({
+    id: e.id,
+    user_id: e.profileId,
+    date: e.date,
+    meals: e.meals,
+    appetite: e.appetite,
+    notes: e.notes ?? '',
+    created_at: e.createdAt,
+  })
+  if (error) throw error
+}
+
+export async function deleteEating(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('eatings').delete().eq('id', id)
+  if (error) throw error
+}
+
+/** Attachments skipped for cloud MVP (no blob storage yet). */
+export async function listAttachments(_userId: string) {
+  return [] as import('../types').AttachmentMeta[]
+}
+export async function getAttachmentBlob(_id: string): Promise<Blob | undefined> {
+  return undefined
+}
+export async function saveAttachment(_meta: import('../types').AttachmentMeta, _blob: Blob): Promise<void> {
+  throw new Error('云端附件尚未开放（MVP）')
+}
+export async function deleteAttachment(_id: string): Promise<void> {
+  /* no-op */
+}
+
+export async function exportProfile(userId: string, email = ''): Promise<ProfileExport> {
+  const profile = await getProfile(userId, email)
   if (!profile) throw new Error('档案不存在')
 
-  const [emotions, sleeps, eatings, depressives, attachments] = await Promise.all([
-    listEmotions(profileId),
-    listSleeps(profileId),
-    listEatings(profileId),
-    listDepressives(profileId),
-    listAttachments(profileId),
+  const [emotions, sleeps, eatings] = await Promise.all([
+    listEmotions(userId),
+    listSleeps(userId),
+    listEatings(userId),
   ])
 
-  const attachmentPayload = await Promise.all(
-    attachments.map(async (meta) => {
-      const blob = await getAttachmentBlob(meta.id)
-      const dataBase64 = blob ? await blobToBase64(blob) : ''
-      return { ...meta, dataBase64 }
-    }),
-  )
-
-  const { passwordHash, salt, ...safe } = profile
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
-    profile: includePassword ? { ...safe, passwordHash, salt } : safe,
+    profile,
     emotions,
     sleeps,
     eatings,
-    depressives,
-    attachments: attachmentPayload,
+    depressives: [],
+    attachments: [],
   }
 }
 
-export async function importProfile(
+/** Merge a JSON export into the current logged-in user's cloud rows. */
+export async function importIntoCurrentUser(
+  userId: string,
   data: ProfileExport,
-  opts: { newId: string; name: string; passwordHash: string; salt: string },
-): Promise<void> {
-  const profile: Profile = {
-    id: opts.newId,
-    name: opts.name,
-    passwordHash: opts.passwordHash,
-    salt: opts.salt,
-    createdAt: new Date().toISOString(),
-    medicalHistory: data.profile.medicalHistory ?? {
-      diagnoses: '',
-      medications: '',
-      allergies: '',
-      notes: '',
-      skipped: true,
-    },
-    theme: data.profile.theme ?? DEFAULT_THEME,
-    onboardingDone: data.profile.onboardingDone ?? true,
-  }
-
-  await saveProfile(profile)
-
-  const remap = (oldId: string) => `${opts.newId}:${oldId.split(':').pop() ?? oldId}`
-
+): Promise<{ emotions: number; sleeps: number; eatings: number }> {
+  let emotions = 0
+  let sleeps = 0
+  let eatings = 0
   for (const e of data.emotions ?? []) {
-    await putEmotion(hydrateEmotion({ ...e, id: remap(e.id), profileId: opts.newId, sources: e.sources ?? [] }))
+    await putEmotion(
+      hydrateEmotion({
+        ...e,
+        id: crypto.randomUUID(),
+        profileId: userId,
+        sources: e.sources ?? [],
+        createdAt: e.createdAt || new Date().toISOString(),
+      }),
+    )
+    emotions++
   }
   for (const e of data.sleeps ?? []) {
-    await putSleep({ ...e, id: remap(e.id), profileId: opts.newId })
+    await putSleep({
+      ...e,
+      id: crypto.randomUUID(),
+      profileId: userId,
+      createdAt: e.createdAt || new Date().toISOString(),
+    })
+    sleeps++
   }
   for (const e of data.eatings ?? []) {
-    await putEating({ ...e, id: remap(e.id), profileId: opts.newId })
+    await putEating({
+      ...e,
+      id: crypto.randomUUID(),
+      profileId: userId,
+      createdAt: e.createdAt || new Date().toISOString(),
+    })
+    eatings++
   }
-  for (const e of data.depressives ?? []) {
-    await putDepressive({ ...e, id: remap(e.id), profileId: opts.newId })
+  if (data.profile?.theme) {
+    const p = await getProfile(userId)
+    if (p) await saveProfile({ ...p, theme: data.profile.theme })
   }
-  for (const a of data.attachments ?? []) {
-    const id = remap(a.id)
-    const { dataBase64, ...meta } = a
-    await saveAttachment(
-      { ...meta, id, profileId: opts.newId },
-      base64ToBlob(dataBase64 || '', a.mimeType || 'application/octet-stream'),
-    )
-  }
+  return { emotions, sleeps, eatings }
+}
+
+export async function deleteAllUserData(userId: string): Promise<void> {
+  const sb = requireSupabase()
+  await Promise.all([
+    sb.from('emotions').delete().eq('user_id', userId),
+    sb.from('sleeps').delete().eq('user_id', userId),
+    sb.from('eatings').delete().eq('user_id', userId),
+  ])
 }
