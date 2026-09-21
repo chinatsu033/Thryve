@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
-import { Button, Field, Modal } from './ui'
+import { formatHm, parseHm } from '../lib/sleep'
 import { uid } from '../lib/crypto'
 import { putMedication } from '../lib/db'
 import {
@@ -14,6 +14,8 @@ import {
   requestNotificationPermission,
 } from '../lib/medReminders'
 import type { Medication } from '../types'
+import { AnalogClockPicker } from './AnalogClockPicker'
+import { Button, Field, Modal } from './ui'
 
 export type MedEditTarget = Medication | 'new' | null
 
@@ -29,6 +31,8 @@ type MedForm = {
   notes: string
   color: string
 }
+
+type ClockMode = 'hour' | 'minute'
 
 function emptyForm(): MedForm {
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -89,10 +93,16 @@ export function MedEditCard({
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
 
+  const [pickingIndex, setPickingIndex] = useState<number | null>(null)
+  const [clockMode, setClockMode] = useState<ClockMode>('hour')
+  const [pickH, setPickH] = useState(8)
+  const [pickM, setPickM] = useState(0)
+
   useEffect(() => {
     if (!open) return
     setMsg('')
     setCustomName('')
+    setPickingIndex(null)
     if (target && target !== 'new') setForm(formFromMed(target))
     else setForm(emptyForm())
   }, [open, target])
@@ -115,6 +125,25 @@ export function MedEditCard({
     const next = [...current]
     while (next.length < count) next.push(defaults[next.length] ?? '08:00')
     setForm({ ...form, reminderTimes: next })
+  }
+
+  const openTimePicker = (i: number) => {
+    const raw = form.reminderTimes[i] || '08:00'
+    const { hour, minute } = parseHm(raw)
+    setPickH(hour)
+    setPickM(minute)
+    setClockMode('hour')
+    setPickingIndex(i)
+  }
+
+  const commitPickedTime = () => {
+    if (pickingIndex == null) return
+    const normalized = normalizeReminderTime(formatHm(pickH, pickM))
+    if (!normalized) return
+    const next = [...form.reminderTimes]
+    next[pickingIndex] = normalized
+    setForm({ ...form, reminderTimes: next })
+    setPickingIndex(null)
   }
 
   const save = async () => {
@@ -246,19 +275,50 @@ export function MedEditCard({
                 <span className="hint" style={{ minWidth: 48 }}>
                   第{i + 1}次
                 </span>
-                <input
-                  type="time"
-                  value={t}
-                  onChange={(e) => {
-                    const next = [...form.reminderTimes]
-                    next[i] = e.target.value
-                    setForm({ ...form, reminderTimes: next })
-                  }}
-                />
+                <button
+                  type="button"
+                  className="chip med-time-chip"
+                  onClick={() => openTimePicker(i)}
+                  aria-label={`第${i + 1}次提醒时间 ${t || '未设置'}`}
+                >
+                  {normalizeReminderTime(t) || t || '选择时间'}
+                </button>
               </div>
             ))}
           </div>
         </Field>
+
+        {pickingIndex != null ? (
+          <div className="med-clock-panel" role="dialog" aria-label="选择提醒时间">
+            <AnalogClockPicker
+              hour={pickH}
+              minute={pickM}
+              mode={clockMode}
+              chip={`第${pickingIndex + 1}次`}
+              onHourChange={setPickH}
+              onMinuteChange={setPickM}
+              onHourCommit={() => setClockMode('minute')}
+              onMinuteCommit={commitPickedTime}
+            />
+            <div className="row" style={{ marginTop: 10, justifyContent: 'center', gap: 8 }}>
+              <Button
+                variant="ghost"
+                className="btn-sm"
+                onClick={() => {
+                  setClockMode('hour')
+                }}
+              >
+                重选小时
+              </Button>
+              <Button className="btn-sm" onClick={commitPickedTime}>
+                完成
+              </Button>
+              <Button variant="ghost" className="btn-sm" onClick={() => setPickingIndex(null)}>
+                取消
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <Field label="使用次数 / 频率" hint="从添加日起按周期计算">
           <div className="chip-row med-freq-row">

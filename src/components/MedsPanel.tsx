@@ -11,6 +11,8 @@ import {
 } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { formatHm, parseHm } from '../lib/sleep'
+import { AnalogClockPicker } from './AnalogClockPicker'
 import { Button, Empty, Field, Modal } from './ui'
 import { uid } from '../lib/crypto'
 import {
@@ -91,6 +93,29 @@ export function MedsPanel({ userId }: { userId: string }) {
   const [form, setForm] = useState<MedForm>(emptyForm())
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pickingIndex, setPickingIndex] = useState<number | null>(null)
+  const [clockMode, setClockMode] = useState<'hour' | 'minute'>('hour')
+  const [pickH, setPickH] = useState(8)
+  const [pickM, setPickM] = useState(0)
+
+  const openTimePicker = (i: number) => {
+    const raw = form.reminderTimes[i] || '08:00'
+    const { hour, minute } = parseHm(raw)
+    setPickH(hour)
+    setPickM(minute)
+    setClockMode('hour')
+    setPickingIndex(i)
+  }
+
+  const commitPickedTime = () => {
+    if (pickingIndex == null) return
+    const normalized = normalizeReminderTime(formatHm(pickH, pickM))
+    if (!normalized) return
+    const next = [...form.reminderTimes]
+    next[pickingIndex] = normalized
+    setForm({ ...form, reminderTimes: next })
+    setPickingIndex(null)
+  }
 
   const monthFrom = format(startOfMonth(month), 'yyyy-MM-dd')
   const monthTo = format(endOfMonth(month), 'yyyy-MM-dd')
@@ -104,6 +129,10 @@ export function MedsPanel({ userId }: { userId: string }) {
     setLogs(l)
     rescheduleMedReminders(m, l)
   }, [userId, monthFrom, monthTo])
+
+  useEffect(() => {
+    if (editMed === null) setPickingIndex(null)
+  }, [editMed])
 
   useEffect(() => {
     void reload().catch((e) => {
@@ -413,19 +442,18 @@ export function MedsPanel({ userId }: { userId: string }) {
             placeholder="如：50mg"
           />
         </Field>
-        <Field label="提醒时间" hint="本地时间 HH:mm，可添加多个">
+        <Field label="提醒时间" hint="点击时间用表盘选择，可添加多个">
           <div className="med-times">
             {form.reminderTimes.map((t, i) => (
               <div key={i} className="row" style={{ gap: 8, alignItems: 'center' }}>
-                <input
-                  type="time"
-                  value={t}
-                  onChange={(e) => {
-                    const next = [...form.reminderTimes]
-                    next[i] = e.target.value
-                    setForm({ ...form, reminderTimes: next })
-                  }}
-                />
+                <button
+                  type="button"
+                  className="chip med-time-chip"
+                  onClick={() => openTimePicker(i)}
+                  aria-label={`提醒时间 ${t || '未设置'}`}
+                >
+                  {normalizeReminderTime(t) || t || '选择时间'}
+                </button>
                 <Button
                   variant="ghost"
                   className="btn-sm"
@@ -448,6 +476,31 @@ export function MedsPanel({ userId }: { userId: string }) {
               + 时间
             </Button>
           </div>
+          {pickingIndex != null ? (
+            <div className="med-clock-panel" role="dialog" aria-label="选择提醒时间">
+              <AnalogClockPicker
+                hour={pickH}
+                minute={pickM}
+                mode={clockMode}
+                chip={`时间 ${pickingIndex + 1}`}
+                onHourChange={setPickH}
+                onMinuteChange={setPickM}
+                onHourCommit={() => setClockMode('minute')}
+                onMinuteCommit={commitPickedTime}
+              />
+              <div className="row" style={{ marginTop: 10, justifyContent: 'center', gap: 8 }}>
+                <Button variant="ghost" className="btn-sm" onClick={() => setClockMode('hour')}>
+                  重选小时
+                </Button>
+                <Button className="btn-sm" onClick={commitPickedTime}>
+                  完成
+                </Button>
+                <Button variant="ghost" className="btn-sm" onClick={() => setPickingIndex(null)}>
+                  取消
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </Field>
         <Field label="服药日" hint="不选则每天">
           <div className="chip-row">
