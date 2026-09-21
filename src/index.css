@@ -1632,22 +1632,52 @@ p {
 .med-time-chip {
   font-variant-numeric: tabular-nums;
   min-width: 4.5rem;
+  flex: 0 0 auto;
+}
+.med-time-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.med-time-label {
+  flex: 0 0 auto;
+  min-width: 3rem;
+}
+.med-times--scroll {
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 .med-clock-panel {
   margin-top: 12px;
   padding: 16px 12px 12px;
   border-radius: var(--radius-md, 16px);
-  background: linear-gradient(160deg, #2a3558 0%, #1a2238 55%, #12182a 100%);
+  background: #fff;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
-.med-clock-panel .btn {
-  color: #fff;
+.med-clock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
 }
-.med-clock-panel .btn.ghost {
-  color: rgba(255, 255, 255, 0.85);
+.med-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.med-edit-actions > * {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 .med-enable-row {
   display: flex;
@@ -1815,23 +1845,155 @@ p {
   color: var(--color-primary);
 }
 .med-common-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  max-height: calc(3 * 36px + 2 * 8px);
+  align-content: flex-start;
+  max-height: 148px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px;
 }
 .med-common-chip {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 6px 4px;
-  font-size: 0.78rem;
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+  z-index: 0;
 }
 .med-freq-row {
+  display: flex;
   flex-wrap: wrap;
+  gap: 8px;
+}
+.med-freq-row--popover {
+  margin-bottom: 0;
+}
+.med-schedule-trigger-wrap {
+  position: relative;
+}
+.med-schedule-trigger {
+  font-variant-numeric: tabular-nums;
+  min-width: 7.5rem;
+}
+.med-schedule-popover {
+  margin-top: 10px;
+  position: relative;
+  z-index: 2;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 12px;
+}
+.med-schedule-popover-title {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.med-schedule-wheel-row {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+.med-schedule-popover-actions {
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.med-schedule-popover-actions > * {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Apple-style wheel */
+.wheel-picker {
+  position: relative;
+  width: min(100%, 160px);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface, #f5f7ff);
+}
+.wheel-picker:active {
+  cursor: grabbing;
+}
+.wheel-picker-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.wheel-picker-item {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  opacity: 0.55;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+.wheel-picker-item.is-selected {
+  opacity: 1;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--color-text);
+}
+.wheel-picker-highlight {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--color-primary-rgb), 0.12);
+  border: 1.5px solid rgba(var(--color-primary-rgb), 0.35);
+  pointer-events: none;
+  z-index: 1;
+}
+.wheel-picker-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 36%;
+  z-index: 2;
+  pointer-events: none;
+}
+.wheel-picker-fade-top {
+  top: 0;
+  background: linear-gradient(to bottom, var(--color-surface, #f5f7ff), transparent);
+}
+.wheel-picker-fade-bottom {
+  bottom: 0;
+  background: linear-gradient(to top, var(--color-surface, #f5f7ff), transparent);
+}
+
+/* Light / surface analog clock (med edit) */
+.clock-picker--surface .clock-chip {
+  color: var(--color-primary);
+  background: rgba(var(--color-primary-rgb), 0.12);
+}
+.clock-picker--surface .clock-digital {
+  color: var(--color-text);
+  text-shadow: none;
+}
+.clock-picker--surface .clock-digital-active {
+  color: var(--color-primary);
+  text-decoration-color: var(--color-primary);
+}
+.clock-picker--surface .clock-digital-sep {
+  color: var(--color-text-muted);
 }
 .med-glow-list {
   margin-top: 14px;
@@ -1841,7 +2003,6 @@ p {
 }
 @media (max-width: 360px) {
   .med-common-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-height: calc(3 * 36px + 2 * 8px);
+    max-height: 168px;
   }
 }

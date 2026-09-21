@@ -18,6 +18,11 @@ type Props = {
    */
   onLiveHoursChange?: (hours: number) => void
   chip?: string
+  /**
+   * overlay — white-on-dark for sleep scenes (default).
+   * surface — white card + solid theme-color clock for med edit etc.
+   */
+  variant?: 'overlay' | 'surface'
 }
 
 const SIZE = 280
@@ -77,7 +82,10 @@ export function AnalogClockPicker({
   onMinuteCommit,
   onLiveHoursChange,
   chip,
+  variant = 'overlay',
 }: Props) {
+  const surface = variant === 'surface'
+
   const svgRef = useRef<SVGSVGElement>(null)
   const dragging = useRef(false)
   const hourRef = useRef(hour)
@@ -155,8 +163,16 @@ export function AnalogClockPicker({
       ? `${String(liveHour).padStart(2, '0')}`
       : `${String(liveMinute).padStart(2, '0')}`
 
+  // surface: solid theme-color dial on white card; overlay: frosted on dark scenes
+  const faceFill = surface ? 'var(--color-primary, #5B6CFF)' : 'rgba(255,255,255,0.18)'
+  const faceStroke = surface ? 'transparent' : 'rgba(255,255,255,0.25)'
+  const handStroke = surface ? '#fff' : 'rgba(255,255,255,0.95)'
+  const hubFill = '#fff'
+  const numFill = surface ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.88)'
+  const numSelected = surface ? 'var(--color-primary, #5B6CFF)' : '#fff'
+
   return (
-    <div className="clock-picker">
+    <div className={`clock-picker${surface ? ' clock-picker--surface' : ''}`}>
       {chip ? <span className="clock-chip">{chip}</span> : null}
       <div className="clock-digital" aria-live="polite">
         {mode === 'hour' ? (
@@ -187,20 +203,28 @@ export function AnalogClockPicker({
         aria-valuemax={mode === 'hour' ? 23 : 59}
         aria-valuenow={mode === 'hour' ? liveHour : liveMinute}
       >
-        <circle cx={CX} cy={CY} r={OUTER_R + 14} fill="rgba(255,255,255,0.18)" />
-        <circle cx={CX} cy={CY} r={OUTER_R + 14} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+        <circle cx={CX} cy={CY} r={OUTER_R + 14} fill={faceFill} />
+        <circle
+          cx={CX}
+          cy={CY}
+          r={OUTER_R + 14}
+          fill="none"
+          stroke={faceStroke}
+          strokeWidth={surface ? 2 : 1}
+          opacity={surface ? 0.35 : 1}
+        />
 
         <line
           x1={CX}
           y1={CY}
           x2={hand.x}
           y2={hand.y}
-          stroke="rgba(255,255,255,0.95)"
+          stroke={handStroke}
           strokeWidth="2.5"
           strokeLinecap="round"
         />
-        <circle cx={CX} cy={CY} r="5" fill="#fff" />
-        <circle cx={hand.x} cy={hand.y} r="18" fill="var(--color-primary, #FF8A65)" opacity="0.95" />
+        <circle cx={CX} cy={CY} r="5" fill={hubFill} />
+        <circle cx={hand.x} cy={hand.y} r="18" fill={surface ? '#fff' : 'var(--color-primary, #5B6CFF)'} opacity="0.95" />
 
         {mode === 'hour'
           ? Array.from({ length: 24 }).map((_, h) => {
@@ -215,7 +239,7 @@ export function AnalogClockPicker({
                   dominantBaseline="central"
                   className={selected ? 'clock-num selected' : 'clock-num'}
                   fontSize={h >= 12 ? 11 : 13}
-                  fill={selected ? '#fff' : 'rgba(255,255,255,0.88)'}
+                  fill={selected ? numSelected : numFill}
                   fontWeight={selected ? 700 : 500}
                   style={{ pointerEvents: 'none' }}
                 >
@@ -235,7 +259,7 @@ export function AnalogClockPicker({
                   dominantBaseline="central"
                   className={selected ? 'clock-num selected' : 'clock-num'}
                   fontSize="13"
-                  fill={selected ? '#fff' : 'rgba(255,255,255,0.88)'}
+                  fill={selected ? numSelected : numFill}
                   fontWeight={selected ? 700 : 500}
                   style={{ pointerEvents: 'none' }}
                 >

@@ -479,6 +479,7 @@ export function MedsPanel({ userId }: { userId: string }) {
           {pickingIndex != null ? (
             <div className="med-clock-panel" role="dialog" aria-label="选择提醒时间">
               <AnalogClockPicker
+                variant="surface"
                 hour={pickH}
                 minute={pickM}
                 mode={clockMode}

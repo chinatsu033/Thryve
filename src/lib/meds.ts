@@ -115,9 +115,9 @@ export function stripAdherenceFromMark(mark: DayMedMark): StripAdherence {
   }
 }
 
-/** Default evenly-spaced reminder times for N doses/day. */
+/** Default evenly-spaced reminder times for N doses/day (1–99). */
 export function defaultTimesForCount(n: number): string[] {
-  const count = Math.min(5, Math.max(1, Math.round(n)))
+  const count = Math.min(99, Math.max(1, Math.round(n)))
   const presets: Record<number, string[]> = {
     1: ['08:00'],
     2: ['08:00', '20:00'],
@@ -125,7 +125,19 @@ export function defaultTimesForCount(n: number): string[] {
     4: ['08:00', '12:00', '16:00', '20:00'],
     5: ['08:00', '11:00', '14:00', '17:00', '20:00'],
   }
-  return [...(presets[count] ?? presets[1])]
+  if (presets[count]) return [...presets[count]]
+  // Spread across waking hours 06:00–22:00
+  const start = 6 * 60
+  const end = 22 * 60
+  const out: string[] = []
+  for (let i = 0; i < count; i++) {
+    const mins =
+      count === 1 ? 8 * 60 : Math.round(start + (i * (end - start)) / (count - 1))
+    const h = Math.floor(mins / 60) % 24
+    const m = mins % 60
+    out.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
+  }
+  return out
 }
 
 export const FREQUENCY_OPTIONS: { label: string; intervalDays: number }[] = [
