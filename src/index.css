@@ -810,13 +810,63 @@ p {
 }
 
 /* —— Home scenic landing (Layer 1) —— */
+.home-landing-root {
+  /* Wrapper for Layer1 enter/exit; children are position:fixed */
+}
+
 .home-landing-layer {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 45;
   overflow: hidden;
   background: #c5d4e8;
   touch-action: pan-y;
+  /* top/left/width/height animated by Framer when morphing to flow-sheet card */
+  will-change: top, left, width, height, border-radius;
+}
+
+.home-landing-layer.home-landing-shell-card {
+  z-index: 61;
+  box-shadow: var(--shadow-lg);
+  touch-action: none;
+  background: var(--color-surface);
+}
+
+.home-landing-morph-backdrop {
+  z-index: 60;
+  /* backdrop already flex-centers; we only need the dim layer behind the shell */
+  pointer-events: none;
+}
+
+.home-landing-scenic {
+  position: absolute;
+  inset: 0;
+}
+
+.home-landing-flow-host {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.home-landing-flow-host .emotion-flow-embedded {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-landing-flow-host .emotion-flow-embedded.flow-sheet-lake {
+  height: 100%;
+  max-height: none;
 }
 
 .lake-scene.lake-scene-fill {
@@ -874,6 +924,34 @@ p {
   font-size: 0.98rem;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
+}
+
+.home-landing-cta-wrap {
+  margin-top: 18px;
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+.home-landing-listen-btn {
+  border: none;
+  cursor: pointer;
+  padding: 12px 28px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--color-text);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: var(--shadow-md);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+}
+
+.home-landing-listen-btn:active {
+  transform: scale(0.96);
+  background: #fff;
 }
 
 /* Layer 1 up chevron — bare ∧, bottom center, no solid backdrop */

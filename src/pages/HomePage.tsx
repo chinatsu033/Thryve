@@ -1,12 +1,14 @@
 import { format, parseISO } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { EmotionFlowSheet } from '../components/EmotionFlowSheet'
 import { LakeMoodScene } from '../components/LakeMoodScene'
 import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
-import { listEatings, listEmotions, listSleeps } from '../lib/db'
+import { uid } from '../lib/crypto'
+import { listEatings, listEmotions, listSleeps, putEmotion } from '../lib/db'
 import { moodSoftLabel, normalizeMood } from '../lib/mood'
 import { appetiteLabel } from '../lib/eating'
 import { easeOutSoft, layerTransition } from '../lib/motion'
@@ -16,6 +18,8 @@ import type { EatingEntry, EmotionEntry, SleepEntry } from '../types'
 type Layer = 'landing' | 'dashboard'
 
 type HomeLocationState = { homeLayer?: Layer }
+
+type ShellRect = { top: number; left: number; width: number; height: number; radius: number }
 
 function layerFromLocation(search: string, state: unknown): Layer {
   const st = state as HomeLocationState | null
@@ -38,10 +42,37 @@ const DASHBOARD_MODULES: Array<{
   { to: '/body', label: '基石', hint: '身心打卡', variant: 'accent' },
 ]
 
+function fullShellRect(): ShellRect {
+  return {
+    top: 0,
+    left: 0,
+    width: typeof window !== 'undefined' ? window.innerWidth : 390,
+    height: typeof window !== 'undefined' ? window.innerHeight : 844,
+    radius: 0,
+  }
+}
+
+/** Match `.flow-sheet` / `.flow-sheet-lake` visual footprint. */
+function cardShellRect(): ShellRect {
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const padX = 14
+  const padTop = 18
+  const padBottom = 18
+  const width = Math.min(vw - padX * 2, 420)
+  const height = Math.min(vh * 0.78, 620)
+  return {
+    top: padTop + (vh - padTop - padBottom - height) / 2,
+    left: (vw - width) / 2,
+    width,
+    height,
+    radius: 36,
+  }
+}
+
 function ChevronUpIcon() {
   return (
     <svg className="home-chevron-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-      {/* Pure geometric ∧ — no vertical stem */}
       <path
         d="M5 15 L12 8 L19 15"
         fill="none"
@@ -57,7 +88,6 @@ function ChevronUpIcon() {
 function ChevronDownIcon() {
   return (
     <svg className="home-chevron-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
-      {/* Pure geometric ∨ — no vertical stem */}
       <path
         d="M5 9 L12 16 L19 9"
         fill="none"
@@ -84,13 +114,19 @@ function SettingsGearIcon() {
 export function HomePage() {
   const { profile } = useAuth()
   const location = useLocation()
+  const reduceMotion = useReducedMotion()
   const [emotions, setEmotions] = useState<EmotionEntry[]>([])
   const [sleeps, setSleeps] = useState<SleepEntry[]>([])
   const [eatings, setEatings] = useState<EatingEntry[]>([])
   const [layer, setLayer] = useState<Layer>(() =>
     layerFromLocation(location.search, location.state),
   )
+  /** Scenic full vs emotion card morph on Layer 1. */
+  const [shellMode, setShellMode] = useState<'full' | 'card'>('full')
+  const [emotionFlowOpen, setEmotionFlowOpen] = useState(false)
+  const [shellRect, setShellRect] = useState<ShellRect>(() => fullShellRect())
   const touchStartY = useRef<number | null>(null)
+  const pendingCloseRef = useRef(false)
 
   useEffect(() => {
     const next = layerFromLocation(location.search, location.state)
@@ -111,14 +147,61 @@ export function HomePage() {
     })()
   }, [profile])
 
-  const goDashboard = useCallback(() => setLayer('dashboard'), [])
+  useEffect(() => {
+    if (layer !== 'landing') {
+      setShellMode('full')
+      setEmotionFlowOpen(false)
+      pendingCloseRef.current = false
+      setShellRect(fullShellRect())
+    }
+  }, [layer])
+
+  useEffect(() => {
+    const sync = () => {
+      setShellRect(shellMode === 'card' ? cardShellRect() : fullShellRect())
+    }
+    sync()
+    window.addEventListener('resize', sync)
+    return () => window.removeEventListener('resize', sync)
+  }, [shellMode])
+
+  const goDashboard = useCallback(() => {
+    if (shellMode === 'card') return
+    setLayer('dashboard')
+  }, [shellMode])
   const goLanding = useCallback(() => setLayer('landing'), [])
+
+  const openEmotionFromLanding = useCallback(() => {
+    pendingCloseRef.current = false
+    setShellRect(cardShellRect())
+    setShellMode('card')
+    if (reduceMotion) {
+      setEmotionFlowOpen(true)
+    }
+  }, [reduceMotion])
+
+  const closeEmotionToLanding = useCallback(() => {
+    pendingCloseRef.current = true
+    setEmotionFlowOpen(false)
+    setShellRect(fullShellRect())
+    setShellMode('full')
+  }, [])
+
+  const onShellAnimationComplete = useCallback(() => {
+    if (shellMode === 'card' && !emotionFlowOpen) {
+      setEmotionFlowOpen(true)
+    }
+    if (shellMode === 'full' && pendingCloseRef.current) {
+      pendingCloseRef.current = false
+    }
+  }, [shellMode, emotionFlowOpen])
 
   const onTouchStart = (e: ReactTouchEvent) => {
     touchStartY.current = e.touches[0]?.clientY ?? null
   }
 
   const onTouchEndLanding = (e: ReactTouchEvent) => {
+    if (shellMode === 'card') return
     const start = touchStartY.current
     touchStartY.current = null
     if (start == null) return
@@ -146,45 +229,133 @@ export function HomePage() {
   const sceneMood = latestMood ? normalizeMood(latestMood.mood, latestMood) : 50
 
   const labelFor = (e: EmotionEntry) => moodSoftLabel(normalizeMood(e.mood, e))
+  const showScenicChrome = !emotionFlowOpen
+  const morphDuration = reduceMotion ? 0.01 : 0.48
 
   return (
     <AnimatePresence mode="wait">
       {layer === 'landing' ? (
         <motion.div
-          key="landing"
-          className="home-landing-layer"
+          key="landing-root"
+          className="home-landing-root"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, y: -40 }}
           transition={layerTransition}
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEndLanding}
         >
-          <LakeMoodScene mood={sceneMood} className="lake-scene-fill" />
+          <AnimatePresence>
+            {shellMode === 'card' ? (
+              <motion.div
+                key="landing-morph-backdrop"
+                className="flow-backdrop home-landing-morph-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: reduceMotion ? 0.01 : 0.28, ease: easeOutSoft }}
+                role="presentation"
+              />
+            ) : null}
+          </AnimatePresence>
 
-          <div className="home-landing-content">
-            <motion.div
-              className="home-landing-greet-wrap"
-              initial={{ opacity: 0, y: 72 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.55, ease: easeOutSoft, delay: 0.1 }}
-            >
-              <h1 className="home-landing-greet">你好，{profile.name}</h1>
-              <p className="home-landing-sub">
-                <span className="home-landing-sub-box">今天也请温柔对待自己</span>
-              </p>
-            </motion.div>
-
-          </div>
-
-          <button
-            type="button"
-            className="home-chevron-float home-chevron-up"
-            onClick={goDashboard}
-            aria-label="进入首页"
+          <motion.div
+            className={`home-landing-layer${shellMode === 'card' ? ' home-landing-shell-card' : ''}`}
+            initial={false}
+            animate={{
+              top: shellRect.top,
+              left: shellRect.left,
+              width: shellRect.width,
+              height: shellRect.height,
+              borderRadius: shellRect.radius,
+            }}
+            transition={{ duration: morphDuration, ease: easeOutSoft }}
+            onAnimationComplete={onShellAnimationComplete}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEndLanding}
           >
-            <ChevronUpIcon />
-          </button>
+            <AnimatePresence initial={false}>
+              {showScenicChrome ? (
+                <motion.div
+                  key="scenic"
+                  className="home-landing-scenic"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reduceMotion ? 0.01 : 0.2, ease: easeOutSoft }}
+                >
+                  <LakeMoodScene mood={sceneMood} className="lake-scene-fill" />
+
+                  <div className="home-landing-content">
+                    <motion.div
+                      className="home-landing-greet-wrap"
+                      initial={{ opacity: 0, y: 72 }}
+                      animate={{
+                        opacity: shellMode === 'card' ? 0 : 1,
+                        y: shellMode === 'card' ? -12 : 0,
+                      }}
+                      transition={{ duration: morphDuration, ease: easeOutSoft }}
+                    >
+                      <h1 className="home-landing-greet">你好，{profile.name}</h1>
+                      <p className="home-landing-sub">
+                        <span className="home-landing-sub-box">今天也请温柔对待自己</span>
+                      </p>
+                      <div className="home-landing-cta-wrap">
+                        <button
+                          type="button"
+                          className="home-landing-listen-btn"
+                          onClick={openEmotionFromLanding}
+                        >
+                          倾听心痕
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>
+
+                  <motion.button
+                    type="button"
+                    className="home-chevron-float home-chevron-up"
+                    onClick={goDashboard}
+                    aria-label="进入首页"
+                    animate={{ opacity: shellMode === 'card' ? 0 : 1 }}
+                    transition={{ duration: morphDuration, ease: easeOutSoft }}
+                    style={{ pointerEvents: shellMode === 'card' ? 'none' : 'auto' }}
+                  >
+                    <ChevronUpIcon />
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="emotion-flow"
+                  className="home-landing-flow-host"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{
+                    duration: reduceMotion ? 0.01 : 0.22,
+                    ease: easeOutSoft,
+                    delay: emotionFlowOpen ? 0 : 0.12,
+                  }}
+                >
+                  <EmotionFlowSheet
+                    embedded
+                    open={emotionFlowOpen}
+                    presentation="morph"
+                    initialMood={sceneMood}
+                    onClose={closeEmotionToLanding}
+                    onSave={async (entry) => {
+                      await putEmotion({
+                        ...entry,
+                        id: uid(),
+                        profileId: profile.id,
+                        createdAt: new Date().toISOString(),
+                      })
+                      const list = await listEmotions(profile.id)
+                      setEmotions(list.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt)))
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </motion.div>
       ) : (
         <motion.div
@@ -247,7 +418,6 @@ export function HomePage() {
                 </p>
               ) : null}
             </Card>
-
 
             <Card title="最近情绪">
               {emotions.slice(0, 3).length === 0 ? (
