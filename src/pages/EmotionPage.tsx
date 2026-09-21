@@ -194,62 +194,53 @@ export function EmotionPage() {
             role="presentation"
           >
             <motion.div
-              className="flow-sheet"
+              className={`flow-sheet${step === 'mood' ? ' flow-sheet-lake' : ''}`}
               role="dialog"
               aria-modal="true"
               aria-label="记录情绪"
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
+              initial={{ y: '100%', opacity: 0.85 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '40%', opacity: 0 }}
               transition={{ type: 'spring', stiffness: 320, damping: 34 }}
             >
-              <div className="flow-header">
-                <button type="button" className="flow-close" onClick={closeFlow} aria-label="关闭">
-                  ✕
-                </button>
-                <div className="flow-steps" aria-hidden>
-                  <span className={step === 'mood' ? 'on' : ''}>风景</span>
-                  <span>·</span>
-                  <span className={step === 'words' ? 'on' : ''}>词语</span>
-                  <span>·</span>
-                  <span className={step === 'source' ? 'on' : ''}>来源</span>
-                </div>
-              </div>
+              <button type="button" className="flow-close" onClick={closeFlow} aria-label="关闭">
+                ✕
+              </button>
 
               <AnimatePresence mode="wait">
                 {step === 'mood' ? (
                   <motion.div
                     key="mood"
-                    className="flow-body"
-                    initial={{ opacity: 0, x: 24 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -24 }}
+                    className="flow-body flow-body-lake"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
                   >
-                    <h2 className="flow-title">此刻的湖面</h2>
-                    <p className="flow-sub">滑动感受风景变化，无需看到数字。</p>
-                    <LakeMoodScene mood={mood} />
-                    <div className="lake-slider-wrap">
-                      <input
-                        type="range"
-                        min={1}
-                        max={100}
-                        step={1}
-                        value={mood}
-                        onChange={(e) => setMood(Number(e.target.value))}
-                        aria-valuemin={1}
-                        aria-valuemax={100}
-                        aria-valuenow={mood}
-                        aria-label="情绪：低谷到盛放"
-                        className="lake-range"
-                      />
-                      <div className="lake-slider-labels">
-                        <span>低谷</span>
-                        <span>盛放</span>
+                    <LakeMoodScene mood={mood} className="lake-scene-card-fill" />
+                    <div className="lake-overlay-controls">
+                      <div className="lake-slider-wrap">
+                        <input
+                          type="range"
+                          min={1}
+                          max={100}
+                          step={1}
+                          value={mood}
+                          onChange={(e) => setMood(Number(e.target.value))}
+                          aria-valuemin={1}
+                          aria-valuemax={100}
+                          aria-valuenow={mood}
+                          aria-label="情绪：低谷到盛放"
+                          className="lake-range"
+                        />
+                        <div className="lake-slider-labels">
+                          <span>低谷</span>
+                          <span>盛放</span>
+                        </div>
                       </div>
+                      <Button block onClick={() => setStep('words')}>
+                        确定
+                      </Button>
                     </div>
-                    <Button block onClick={() => setStep('words')}>
-                      确定
-                    </Button>
                   </motion.div>
                 ) : null}
 

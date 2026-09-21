@@ -33,6 +33,7 @@ export function moodSoftLabel(mood100: number): '低谷' | '平稳' | '盛放' {
   return '盛放'
 }
 
+/** ~4 rows of chips at typical mobile width. */
 export const POSITIVE_EMOTION_WORDS = [
   '平静',
   '喜悦',
@@ -46,6 +47,14 @@ export const POSITIVE_EMOTION_WORDS = [
   '自信',
   '好奇',
   '温柔',
+  '快乐',
+  '舒畅',
+  '开朗',
+  '充实',
+  '踏实',
+  '释然',
+  '雀跃',
+  '振奋',
 ] as const
 
 export const NEGATIVE_EMOTION_WORDS = [
@@ -61,6 +70,14 @@ export const NEGATIVE_EMOTION_WORDS = [
   '自责',
   '紧张',
   '失落',
+  '沮丧',
+  '委屈',
+  '愧疚',
+  '压抑',
+  '慌乱',
+  '空虚',
+  '无力',
+  '伤心',
 ] as const
 
 export const NEUTRAL_EMOTION_WORDS = [
@@ -74,8 +91,15 @@ export const NEUTRAL_EMOTION_WORDS = [
   '期待',
   '迟钝',
   '还好',
+  '普通',
+  '一般',
+  '说不清',
+  '波动',
+  '犹豫',
+  '观望',
 ] as const
 
+/** ~3 rows of chips at typical mobile width. */
 export const EMOTION_SOURCE_WORDS = [
   '工作',
   '家人',
@@ -85,6 +109,13 @@ export const EMOTION_SOURCE_WORDS = [
   '学习',
   '恋爱',
   '自己',
+  '睡眠',
+  '天气',
+  '社交',
+  '学业',
+  '通勤',
+  '媒体',
+  '回忆',
   '其他',
 ] as const
 

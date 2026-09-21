@@ -189,6 +189,7 @@ export function Empty({ text }: { text: string }) {
 }
 
 function goBackOrHome(navigate: ReturnType<typeof useNavigate>) {
+  // Prefer SPA history idx when present; only fall back to home if no prior entry.
   const idx = (window.history.state as { idx?: number } | null)?.idx
   if (typeof idx === 'number') {
     if (idx > 0) navigate(-1)
@@ -197,6 +198,22 @@ function goBackOrHome(navigate: ReturnType<typeof useNavigate>) {
   }
   if (window.history.length > 1) navigate(-1)
   else navigate('/')
+}
+
+function BackChevronIcon() {
+  return (
+    <svg className="page-back-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden>
+      {/* Geometric left chevron ⟨ — no stem */}
+      <path
+        d="M15 5 L8 12 L15 19"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
 }
 
 export function Page({
@@ -210,7 +227,7 @@ export function Page({
   sub?: string
   children: ReactNode
   actions?: ReactNode
-  /** Show top-left 「← 返回」. Default true; set false on home / auth. */
+  /** Show top-left chevron back. Default true; set false on home / auth. */
   back?: boolean
 }) {
   const navigate = useNavigate()
@@ -230,7 +247,7 @@ export function Page({
           onClick={() => goBackOrHome(navigate)}
           aria-label="返回"
         >
-          ← 返回
+          <BackChevronIcon />
         </button>
       ) : null}
       {showHeader && (title || sub || actions) ? (

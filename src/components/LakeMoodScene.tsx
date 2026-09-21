@@ -10,12 +10,41 @@ function clamp01(n: number) {
   return Math.min(1, Math.max(0, n))
 }
 
+/** Staggered duck count as mood nears 盛放: 1 ≥70, 2 ≥85, 3 ≥95. */
+function duckCountForMood(mood: number): number {
+  if (mood >= 95) return 3
+  if (mood >= 85) return 2
+  if (mood >= 70) return 1
+  return 0
+}
+
+const DUCKS = [
+  {
+    transform: 'translate(110,148)',
+    body: { rx: 7, ry: 3.5, fill: '#5D4037' },
+    head: { cx: 6, cy: -2, r: 2.8, fill: '#5D4037' },
+    beak: { d: 'M8 -2 L12 -1', strokeWidth: 1.4 },
+  },
+  {
+    transform: 'translate(145,155)',
+    body: { rx: 6, ry: 3, fill: '#6D4C41' },
+    head: { cx: 5.5, cy: -1.5, r: 2.4, fill: '#6D4C41' },
+    beak: { d: 'M7.5 -1.5 L11 -0.5', strokeWidth: 1.2 },
+  },
+  {
+    transform: 'translate(175,150)',
+    body: { rx: 5.5, ry: 2.8, fill: '#4E342E' },
+    head: { cx: 5, cy: -1.8, r: 2.2, fill: '#4E342E' },
+    beak: { d: 'M7 -1.8 L10.5 -1', strokeWidth: 1.2 },
+  },
+] as const
+
 export function LakeMoodScene({ mood = 50, className = '' }: Props) {
   const uid = useId().replace(/:/g, '')
   const t = clamp01((mood - 1) / 99) // 0 = 低谷, 1 = 盛放
   const storm = clamp01(1 - t * 2) // strong when mood low
   const bright = clamp01((t - 0.45) / 0.55)
-  const ducks = t > 0.82
+  const duckCount = duckCountForMood(mood)
 
   const skyTop = useMemo(() => {
     // storm gray → mild blue → bright azure
@@ -143,24 +172,21 @@ export function LakeMoodScene({ mood = 50, className = '' }: Props) {
         {/* Shore reflection hint */}
         <ellipse cx="160" cy="175" rx="140" ry="18" fill="#000" opacity={0.06 + storm * 0.06} />
 
-        {/* Ducks (near max) */}
-        {ducks ? (
+        {/* Ducks — progressive 1 → 2 → 3 near 盛放 */}
+        {duckCount > 0 ? (
           <g className="lake-ducks">
-            <g transform="translate(110,148)">
-              <ellipse cx="0" cy="0" rx="7" ry="3.5" fill="#5D4037" />
-              <circle cx="6" cy="-2" r="2.8" fill="#5D4037" />
-              <path d="M8 -2 L12 -1" stroke="#FFB300" strokeWidth="1.4" strokeLinecap="round" />
-            </g>
-            <g transform="translate(145,155)">
-              <ellipse cx="0" cy="0" rx="6" ry="3" fill="#6D4C41" />
-              <circle cx="5.5" cy="-1.5" r="2.4" fill="#6D4C41" />
-              <path d="M7.5 -1.5 L11 -0.5" stroke="#FFB300" strokeWidth="1.2" strokeLinecap="round" />
-            </g>
-            <g transform="translate(175,150)">
-              <ellipse cx="0" cy="0" rx="5.5" ry="2.8" fill="#4E342E" />
-              <circle cx="5" cy="-1.8" r="2.2" fill="#4E342E" />
-              <path d="M7 -1.8 L10.5 -1" stroke="#FFB300" strokeWidth="1.2" strokeLinecap="round" />
-            </g>
+            {DUCKS.slice(0, duckCount).map((d, i) => (
+              <g key={i} transform={d.transform}>
+                <ellipse cx="0" cy="0" rx={d.body.rx} ry={d.body.ry} fill={d.body.fill} />
+                <circle cx={d.head.cx} cy={d.head.cy} r={d.head.r} fill={d.head.fill} />
+                <path
+                  d={d.beak.d}
+                  stroke="#FFB300"
+                  strokeWidth={d.beak.strokeWidth}
+                  strokeLinecap="round"
+                />
+              </g>
+            ))}
           </g>
         ) : null}
 
