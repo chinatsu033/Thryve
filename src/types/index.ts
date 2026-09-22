@@ -157,14 +157,16 @@ export const EMOTION_TAGS = [
   '烦躁',
 ] as const
 
-export const THEME_PRESETS: Record<string, ThemeConfig> = {
-  暖阳橙: { primary: '#FF8A65', accent: '#FFD54F', surface: '#FFF8F3' },
-  草木绿: { primary: '#43A047', accent: '#26A69A', surface: '#F3FAF4' },
-  暮紫: { primary: '#7E57C2', accent: '#EC407A', surface: '#F8F5FC' },
-  雾灰: { primary: '#607D8B', accent: '#90A4AE', surface: '#F5F7F8' },
+export type ThemePresetId = 'warmAmber' | 'verdant' | 'duskViolet' | 'mistGray'
+
+export const THEME_PRESETS: Record<ThemePresetId, ThemeConfig> = {
+  warmAmber: { primary: '#FF8A65', accent: '#FFD54F', surface: '#FFF8F3' },
+  verdant: { primary: '#43A047', accent: '#26A69A', surface: '#F3FAF4' },
+  duskViolet: { primary: '#7E57C2', accent: '#EC407A', surface: '#F8F5FC' },
+  mistGray: { primary: '#607D8B', accent: '#90A4AE', surface: '#F5F7F8' },
 }
 
-export const DEFAULT_THEME: ThemeConfig = THEME_PRESETS['暖阳橙']
+export const DEFAULT_THEME: ThemeConfig = THEME_PRESETS.warmAmber
 
 export const DEFAULT_CHECKLIST: DepressiveChecklist = {
   lowEnergy: false,

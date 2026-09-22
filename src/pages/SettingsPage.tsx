@@ -21,6 +21,7 @@ import {
   THEME_PRESETS,
   type ProfileExport,
   type ThemeConfig,
+  type ThemePresetId,
 } from '../types'
 
 export function SettingsPage() {
@@ -52,12 +53,12 @@ export function SettingsPage() {
 
   if (!profile) return null
 
-  const applyPreset = async (name: string) => {
-    const theme = THEME_PRESETS[name]
+  const applyPreset = async (id: ThemePresetId) => {
+    const theme = THEME_PRESETS[id]
     if (!theme) return
     setCustom(theme)
     await setTheme(theme)
-    setMsg(t('settings.msg.themeApplied', { name }))
+    setMsg(t('settings.msg.themeApplied', { name: t(`theme.${id}`) }))
   }
 
   const saveCustomTheme = async () => {
@@ -215,24 +216,24 @@ export function SettingsPage() {
 
       <Card title={t('settings.theme')}>
         <div className="preset-grid">
-          {Object.entries(THEME_PRESETS).map(([name, theme]) => {
+          {Object.entries(THEME_PRESETS).map(([id, theme]) => {
             const active =
               profile.theme.primary === theme.primary &&
               profile.theme.accent === theme.accent &&
               profile.theme.surface === theme.surface
             return (
               <button
-                key={name}
+                key={id}
                 type="button"
                 className={`preset-card ${active ? 'active' : ''}`}
-                onClick={() => void applyPreset(name)}
+                onClick={() => void applyPreset(id as ThemePresetId)}
               >
                 <div className="swatches">
                   <span style={{ background: theme.primary }} />
                   <span style={{ background: theme.accent }} />
                   <span style={{ background: theme.surface }} />
                 </div>
-                {name}
+                {t(`theme.${id}`)}
               </button>
             )
           })}
