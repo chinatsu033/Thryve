@@ -2214,38 +2214,8 @@ p {
   margin-bottom: 4px;
 }
 
-.language-select-stage {
-  position: relative;
-  min-height: 420px;
-}
-
-.danmaku-layer {
-  position: absolute;
-  inset: -8px -4px 80px;
-  pointer-events: none;
-  overflow: hidden;
-  z-index: 0;
-}
-
-.danmaku-set {
-  position: absolute;
-  inset: 0;
-}
-
-.danmaku-item {
-  position: absolute;
-  white-space: nowrap;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.7);
-  user-select: none;
-}
-
 .language-select-card {
-  position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
+  background: var(--color-card);
 }
 
 .language-option-list {

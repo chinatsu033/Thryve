@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
+import { WORLD_LAND_PATH } from '../assets/worldLandPath'
 import { REGION_LABELS, REGION_MAP_FOCUS, type RegionId } from '../lib/locale'
 
-/** Equirectangular-ish projection into a soft world viewBox. */
+/** Equirectangular projection into a 1000×500 world viewBox (matches Natural Earth land asset). */
 function project(lat: number, lng: number) {
   const x = ((lng + 180) / 360) * 1000
   const y = ((90 - lat) / 180) * 500
@@ -29,8 +30,9 @@ type Props = {
 }
 
 /**
- * Soft stylized world silhouette — dots only, no flags, no disputed borders.
- * Pans/zooms so the selected region marker sits near the visual center.
+ * Outlined world land map (Natural Earth 110m coastlines, public domain).
+ * Soft wellness fill + stroke contours; pans/zooms to the selected region marker.
+ * No flags; Taiwan marker uses 「台湾地区」 via REGION_LABELS.
  */
 export function RegionFocusMap({ region, className = '' }: Props) {
   const focus = REGION_MAP_FOCUS[region]
@@ -44,31 +46,32 @@ export function RegionFocusMap({ region, className = '' }: Props) {
       <svg viewBox="0 0 1000 500" className="region-map-svg">
         <defs>
           <radialGradient id="region-map-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(91,108,255,0.18)" />
+            <stop offset="0%" stopColor="rgba(91,108,255,0.14)" />
             <stop offset="100%" stopColor="rgba(91,108,255,0)" />
           </radialGradient>
           <linearGradient id="land-fill" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="rgba(140,160,200,0.35)" />
-            <stop offset="100%" stopColor="rgba(120,150,190,0.22)" />
+            <stop offset="0%" stopColor="rgba(150,168,205,0.42)" />
+            <stop offset="100%" stopColor="rgba(125,150,190,0.28)" />
           </linearGradient>
         </defs>
 
-        <rect width="1000" height="500" fill="url(#region-map-glow)" opacity="0.5" />
+        <rect width="1000" height="500" fill="url(#region-map-glow)" opacity="0.55" />
 
         <motion.g
           animate={{ x: tx, y: ty, scale }}
           transition={{ type: 'spring', stiffness: 120, damping: 22 }}
           style={{ originX: 0, originY: 0 }}
         >
-          <ellipse cx="200" cy="220" rx="120" ry="90" fill="url(#land-fill)" />
-          <ellipse cx="320" cy="180" rx="70" ry="55" fill="url(#land-fill)" />
-          <ellipse cx="480" cy="200" rx="55" ry="70" fill="url(#land-fill)" />
-          <ellipse cx="720" cy="210" rx="160" ry="100" fill="url(#land-fill)" />
-          <ellipse cx="780" cy="280" rx="70" ry="45" fill="url(#land-fill)" />
-          <ellipse cx="820" cy="170" rx="45" ry="55" fill="url(#land-fill)" />
-          <ellipse cx="860" cy="300" rx="35" ry="50" fill="url(#land-fill)" />
-          <ellipse cx="250" cy="320" rx="40" ry="55" fill="url(#land-fill)" />
-          <ellipse cx="150" cy="140" rx="50" ry="35" fill="url(#land-fill)" />
+          <path
+            className="region-map-land"
+            d={WORLD_LAND_PATH}
+            fill="url(#land-fill)"
+            stroke="rgba(90,110,150,0.55)"
+            strokeWidth={1.1}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
 
           {MARKERS.map((m) => {
             const f = REGION_MAP_FOCUS[m.id]
