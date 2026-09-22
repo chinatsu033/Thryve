@@ -1,14 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
-import {
-  EMOTION_SOURCE_WORDS,
-  emotionWordsForMood,
-  moodSoftLabel,
-} from '../lib/mood'
+import { EMOTION_SOURCE_WORDS,
+  emotionWordsForMood,  moodSoftLabelKey } from '../lib/mood'
 import { backdropFade, sheetEnter, stepFade } from '../lib/motion'
 import type { EmotionEntry } from '../types'
 import { LakeMoodScene } from './LakeMoodScene'
 import { Button, Field } from './ui'
+import { useLocale } from '../context/LocaleContext'
 
 type Step = 'mood' | 'words' | 'source'
 
@@ -37,6 +35,7 @@ export function EmotionFlowSheet({
   initialMood = 50,
   presentation = 'sheet',
 }: Props) {
+  const { t } = useLocale()
   const [step, setStep] = useState<Step>('mood')
   const [mood, setMood] = useState(initialMood)
   const [tags, setTags] = useState<string[]>([])
@@ -109,7 +108,7 @@ export function EmotionFlowSheet({
 
   const body = (
     <>
-      <button type="button" className="flow-close" onClick={onClose} aria-label="关闭">
+      <button type="button" className="flow-close" onClick={onClose} aria-label={t('common.close')}>
         ✕
       </button>
 
@@ -119,7 +118,7 @@ export function EmotionFlowSheet({
             <LakeMoodScene mood={mood} className="lake-scene-card-fill" />
             <div className="lake-overlay-controls">
               <p className="sleep-feel-label" aria-live="polite">
-                {moodSoftLabel(mood)}
+                {t(moodSoftLabelKey(mood))}
               </p>
               <div className="lake-slider-wrap">
                 <input
@@ -132,8 +131,8 @@ export function EmotionFlowSheet({
                   aria-valuemin={1}
                   aria-valuemax={100}
                   aria-valuenow={mood}
-                  aria-valuetext={moodSoftLabel(mood)}
-                  aria-label="情绪：低谷到盛放"
+                  aria-valuetext={t(moodSoftLabelKey(mood))}
+                  aria-label={t('emotion.flow.sliderAria')}
                   className="lake-range"
                 />
                 <div className="lake-slider-labels">
@@ -176,12 +175,12 @@ export function EmotionFlowSheet({
                   </button>
                 ))}
             </div>
-            <Field label="自定义词语">
+            <Field label={t('emotion.flow.customWord')}>
               <div className="row" style={{ alignItems: 'stretch' }}>
                 <input
                   value={customWord}
                   onChange={(e) => setCustomWord(e.target.value)}
-                  placeholder="输入后点添加"
+                  placeholder={t('emotion.flow.customPlaceholder')}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -232,12 +231,12 @@ export function EmotionFlowSheet({
                   </button>
                 ))}
             </div>
-            <Field label="自定义来源">
+            <Field label={t('emotion.flow.customSource')}>
               <div className="row" style={{ alignItems: 'stretch' }}>
                 <input
                   value={customSource}
                   onChange={(e) => setCustomSource(e.target.value)}
-                  placeholder="输入后点添加"
+                  placeholder={t('emotion.flow.customPlaceholder')}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -251,11 +250,11 @@ export function EmotionFlowSheet({
                 </Button>
               </div>
             </Field>
-            <Field label="备注（可选）">
+            <Field label={t('common.notesOptional')}>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="想补充的一点细节…"
+                placeholder={t('emotion.flow.notesPlaceholder')}
                 rows={3}
               />
             </Field>
@@ -264,7 +263,7 @@ export function EmotionFlowSheet({
                 上一步
               </Button>
               <Button disabled={busy} onClick={() => void save()}>
-                {busy ? '保存中…' : '保存'}
+                {busy ? t('common.saving') : t('common.save')}
               </Button>
             </div>
           </motion.div>
@@ -280,7 +279,7 @@ export function EmotionFlowSheet({
         className={`flow-sheet emotion-flow-embedded${step === 'mood' ? ' flow-sheet-lake' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-label="记录情绪"
+        aria-label={t('emotion.flow.aria')}
       >
         {body}
       </div>
@@ -299,7 +298,7 @@ export function EmotionFlowSheet({
             className={`flow-sheet${step === 'mood' ? ' flow-sheet-lake' : ''}`}
             role="dialog"
             aria-modal="true"
-            aria-label="记录情绪"
+            aria-label={t('emotion.flow.aria')}
             {...(sheetMotion ?? {
               initial: false,
               animate: { opacity: 1 },

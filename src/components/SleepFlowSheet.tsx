@@ -1,19 +1,17 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { backdropFade, sheetEnter, stepFade } from '../lib/motion'
 import { useEffect, useState } from 'react'
-import {
-  dayPartFromHours,
+import { dayPartFromHours,
   formatHm,
   hoursFromHm,
   parseHm,
-  sleepBandFromContinuous,
-  sleepQualityLabel,
-} from '../lib/sleep'
+  sleepBandFromContinuous,  sleepQualityLabelKey } from '../lib/sleep'
 import type { SleepEntry } from '../types'
 import { AnalogClockPicker } from './AnalogClockPicker'
 import { ForestLodgeScene } from './ForestLodgeScene'
 import { SeaBoatScene } from './SeaBoatScene'
 import { Button } from './ui'
+import { useLocale } from '../context/LocaleContext'
 
 type Step = 'date' | 'bed' | 'wake' | 'feel' | 'notes'
 type ClockMode = 'hour' | 'minute'
@@ -33,6 +31,7 @@ function todayStr() {
 }
 
 export function SleepFlowSheet({ open, onClose, onSave }: Props) {
+  const { t } = useLocale()
   const [step, setStep] = useState<Step>('date')
   const [date, setDate] = useState(todayStr())
   const [bedtime, setBedtime] = useState('23:00')
@@ -150,10 +149,10 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
             className="flow-sheet flow-sheet-lake sleep-flow-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="睡眠记录"
+            aria-label={t('sleep.flow.aria')}
             {...sheetEnter}
           >
-            <button type="button" className="flow-close" onClick={onClose} aria-label="关闭">
+            <button type="button" className="flow-close" onClick={onClose} aria-label={t('common.close')}>
               ✕
             </button>
 
@@ -175,7 +174,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       className="sleep-date-input"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      aria-label="日期"
+                      aria-label={t('common.date')}
                     />
                     <Button block onClick={startBed}>
                       确定日期
@@ -200,7 +199,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       hour={bedH}
                       minute={bedM}
                       mode={clockMode}
-                      chip="入睡"
+                      chip={t('sleep.bedtime')}
                       onHourChange={(h) => syncBedFromClock(h, bedM)}
                       onMinuteChange={(m) => syncBedFromClock(bedH, m)}
                       onLiveHoursChange={onLiveHours}
@@ -227,7 +226,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       hour={wakeH}
                       minute={wakeM}
                       mode={clockMode}
-                      chip="起床"
+                      chip={t('sleep.wake')}
                       onHourChange={(h) => syncWakeFromClock(h, wakeM)}
                       onMinuteChange={(m) => syncWakeFromClock(wakeH, m)}
                       onLiveHoursChange={onLiveHours}
@@ -246,7 +245,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                 >
                   <SeaBoatScene quality={feel} className="sea-scene-card-fill" />
                   <div className="sleep-feel-label" aria-live="polite">
-                    {sleepQualityLabel(sleepBandFromContinuous(feel))}
+                    {t(sleepQualityLabelKey(sleepBandFromContinuous(feel)))}
                   </div>
                   <div className="lake-overlay-controls sleep-overlay">
                     <div className="lake-slider-wrap">
@@ -260,7 +259,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                         aria-valuemin={1}
                         aria-valuemax={7}
                         aria-valuenow={sleepBandFromContinuous(feel)}
-                        aria-label="睡眠感受"
+                        aria-label={t('sleep.feel')}
                         className="lake-range"
                       />
                     </div>
@@ -283,12 +282,12 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       className="sleep-notes-input"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="写点什么吧..."
+                      placeholder={t('sleep.notesPlaceholder')}
                       rows={4}
-                      aria-label="备注"
+                      aria-label={t('common.notes')}
                     />
                     <Button block disabled={busy} onClick={() => void save()}>
-                      {busy ? '保存中…' : '保存'}
+                      {busy ? t('common.saving') : t('common.save')}
                     </Button>
                   </div>
                 </motion.div>

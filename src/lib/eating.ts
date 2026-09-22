@@ -25,3 +25,8 @@ export function appetiteBandFromContinuous(v: number): number {
 export function mealsFromAppetite(appetite: number): number {
   return normalizeAppetite(appetite) - 1
 }
+
+/** i18n key for appetite (eating.0 … eating.4). */
+export function appetiteLabelKey(appetite: number): `eating.${number}` {
+  return `eating.${normalizeAppetite(appetite) - 1}`
+}

@@ -26,7 +26,7 @@ import {
 export function SettingsPage() {
   const { profile, setTheme, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
-  const { region, language, t: tr, regionDisplayName } = useLocale()
+  const { region, language, t: tr, regionDisplayName, t } = useLocale()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
@@ -42,7 +42,7 @@ export function SettingsPage() {
       setInviteCodes(rows)
     } catch (e) {
       console.error(e)
-      setMsg(`加载邀请码失败：${e instanceof Error ? e.message : '未知错误'}`)
+      setMsg(`加载邀请码失败：${e instanceof Error ? e.message : t('common.unknownError')}`)
     }
   }, [profile])
 
@@ -62,17 +62,17 @@ export function SettingsPage() {
 
   const saveCustomTheme = async () => {
     await setTheme(custom)
-    setMsg('自定义主题已保存')
+    setMsg(t('settings.msg.themeSaved'))
   }
 
   const saveDisplayName = async () => {
     const name = displayName.trim()
     if (!name) {
-      setMsg('显示名称不能为空')
+      setMsg(t('settings.msg.nameEmpty'))
       return
     }
     await updateProfile({ name })
-    setMsg('显示名称已更新')
+    setMsg(t('settings.msg.nameSaved'))
   }
 
   const doExport = async () => {
@@ -84,20 +84,20 @@ export function SettingsPage() {
     a.download = `thryve-${profile.name}-${new Date().toISOString().slice(0, 10)}.json`
     a.click()
     URL.revokeObjectURL(url)
-    setMsg('已从云端导出 JSON 备份')
+    setMsg(t('settings.msg.exported'))
   }
 
   const doImport = async (file: File) => {
     try {
       const text = await file.text()
       const data = JSON.parse(text) as ProfileExport
-      if (data.version !== 1) throw new Error('不支持的导出版本')
+      if (data.version !== 1) throw new Error(t('settings.msg.importBadVersion'))
       const stats = await importIntoCurrentUser(profile.id, data)
       setMsg(
         `已导入到当前账户：情绪 ${stats.emotions}、睡眠 ${stats.sleeps}、饮食 ${stats.eatings} 条`,
       )
     } catch (e) {
-      setMsg(`导入失败：${e instanceof Error ? e.message : '未知错误'}`)
+      setMsg(`导入失败：${e instanceof Error ? e.message : t('common.unknownError')}`)
     }
   }
 
@@ -107,10 +107,10 @@ export function SettingsPage() {
   }
 
   const doClearCloud = async () => {
-    if (!confirm('确定清空当前账户的云端情绪 / 睡眠 / 饮食 / 用药记录？此操作不可恢复。')) return
-    if (!confirm('再次确认：将删除云端打卡数据（不会删除登录账号）。')) return
+    if (!confirm(t('settings.msg.clearConfirm1'))) return
+    if (!confirm(t('settings.msg.clearConfirm2'))) return
     await deleteAllUserData(profile.id)
-    setMsg('云端打卡数据已清空')
+    setMsg(t('settings.msg.cleared'))
   }
 
   const doGenerateInvite = async () => {
@@ -120,7 +120,7 @@ export function SettingsPage() {
       setInviteCodes((prev) => [row, ...prev])
       setMsg(`已生成邀请码 ${row.code}（最多 10 次）`)
     } catch (e) {
-      setMsg(`生成失败：${e instanceof Error ? e.message : '未知错误'}`)
+      setMsg(`生成失败：${e instanceof Error ? e.message : t('common.unknownError')}`)
     } finally {
       setInviteBusy(false)
     }
@@ -134,7 +134,7 @@ export function SettingsPage() {
       setInviteCodes((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: next } : r)))
       setMsg(next ? `已启用 ${row.code}` : `已停用 ${row.code}`)
     } catch (e) {
-      setMsg(`更新失败：${e instanceof Error ? e.message : '未知错误'}`)
+      setMsg(`更新失败：${e instanceof Error ? e.message : t('common.unknownError')}`)
     } finally {
       setInviteBusy(false)
     }
@@ -144,10 +144,10 @@ export function SettingsPage() {
   const doRequestNotif = async () => {
     const p = await requestNotificationPermission()
     setNotifPerm(p)
-    if (p === 'granted') setMsg('已开启浏览器用药提醒权限')
-    else if (p === 'denied') setMsg('浏览器已拒绝通知权限，可在站点设置中重新允许')
-    else if (p === 'unsupported') setMsg('当前浏览器不支持网页通知')
-    else setMsg('尚未授权通知权限')
+    if (p === 'granted') setMsg(t('settings.msg.notifGranted'))
+    else if (p === 'denied') setMsg(t('settings.msg.notifDenied'))
+    else if (p === 'unsupported') setMsg(t('settings.msg.notifUnsupported'))
+    else setMsg(t('settings.msg.notifDefault'))
   }
 
   const formatUses = (row: InviteCodeRow) => {
@@ -156,7 +156,7 @@ export function SettingsPage() {
   }
 
   return (
-    <Page title="设置" sub="主题、导出与账户。">
+    <Page title={t('brand.settings')} sub={t('settings.sub')}>
       <Disclaimer />
       {msg ? (
         <Card>
@@ -199,7 +199,7 @@ export function SettingsPage() {
         </Button>
       </Card>
 
-      <Card title="个人资料">
+      <Card title={t('settings.profile')}>
         <Field label="邮箱">
           <input value={profile.email} disabled readOnly />
         </Field>
@@ -209,7 +209,7 @@ export function SettingsPage() {
         <Button onClick={() => void saveDisplayName()}>保存名称</Button>
       </Card>
 
-      <Card title="主题（按账户保存）">
+      <Card title={t('settings.theme')}>
         <div className="preset-grid">
           {Object.entries(THEME_PRESETS).map(([name, t]) => {
             const active =
@@ -235,21 +235,21 @@ export function SettingsPage() {
         </div>
         <div style={{ height: 14 }} />
         <div className="row">
-          <Field label="主色 primary">
+          <Field label={t('settings.theme.primary')}>
             <input
               type="color"
               value={custom.primary}
               onChange={(e) => setCustom({ ...custom, primary: e.target.value })}
             />
           </Field>
-          <Field label="强调色 accent">
+          <Field label={t('settings.theme.accent')}>
             <input
               type="color"
               value={custom.accent}
               onChange={(e) => setCustom({ ...custom, accent: e.target.value })}
             />
           </Field>
-          <Field label="背景 surface">
+          <Field label={t('settings.theme.surface')}>
             <input
               type="color"
               value={custom.surface}
@@ -260,7 +260,7 @@ export function SettingsPage() {
         <Button onClick={() => void saveCustomTheme()}>保存自定义主题</Button>
       </Card>
 
-      <Card title="数据导出 / 导入">
+      <Card title={t('settings.data')}>
         <p className="hint">从云端导出 JSON 备份；导入会合并到当前登录账户。</p>
         <Button onClick={() => void doExport()}>导出云端数据</Button>
         <div style={{ height: 16 }} />
@@ -281,7 +281,7 @@ export function SettingsPage() {
       </Card>
 
 
-      <Card title="用药提醒（浏览器通知）">
+      <Card title={t('settings.notif')}>
         <p className="hint">
           开启后，在本标签页保持打开（或添加到主屏幕）时，会对今日未打卡的服药时间弹出提醒。标签关闭后可能不准；无服务器推送（MVP）。
         </p>
@@ -289,12 +289,12 @@ export function SettingsPage() {
           当前权限：
           <strong>
             {notifPerm === 'granted'
-              ? '已允许'
+              ? t('settings.notif.granted')
               : notifPerm === 'denied'
-                ? '已拒绝'
+                ? t('settings.notif.denied')
                 : notifPerm === 'unsupported'
-                  ? '不支持'
-                  : '未请求'}
+                  ? t('settings.notif.unsupported')
+                  : t('settings.notif.default')}
           </strong>
         </p>
         <Button onClick={() => void doRequestNotif()}>请求通知权限</Button>
@@ -303,7 +303,7 @@ export function SettingsPage() {
       <Card title="邀请码">
         <p className="hint">生成邀请码分享给朋友注册。每人仅能看到自己创建的码。</p>
         <Button disabled={inviteBusy} onClick={() => void doGenerateInvite()}>
-          {inviteBusy ? '处理中…' : '生成新邀请码'}
+          {inviteBusy ? t('common.processing') : t('settings.invite.generate')}
         </Button>
         <div style={{ height: 12 }} />
         {inviteCodes.length === 0 ? (
@@ -318,13 +318,13 @@ export function SettingsPage() {
                   {row.code}
                 </strong>
                 <span className="hint">使用 {formatUses(row)}</span>
-                <span className="hint">{row.enabled ? '已启用' : '已停用'}</span>
+                <span className="hint">{row.enabled ? t('common.enabled') : '已停用'}</span>
                 <Button
                   variant="ghost"
                   disabled={inviteBusy}
                   onClick={() => void doToggleInvite(row)}
                 >
-                  {row.enabled ? '停用' : '启用'}
+                  {row.enabled ? t('common.disable') : t('common.enable')}
                 </Button>
               </li>
             ))}
@@ -332,7 +332,7 @@ export function SettingsPage() {
         )}
       </Card>
 
-      <Card title="账户">
+      <Card title={t('settings.account')}>
         <p>
           当前用户：<strong>{profile.name}</strong>
           {profile.email ? (
@@ -352,7 +352,7 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Card title="关于 Thryve">
+      <Card title={t('settings.about')}>
         <div className="settings-version">
           <div className="settings-version-badge">{APP_VERSION_LABEL}</div>
           <p className="hint" style={{ margin: '8px 0 12px' }}>
@@ -366,7 +366,7 @@ export function SettingsPage() {
         </div>
       </Card>
 
-      <Card title="隐私说明">
+      <Card title={t('settings.privacy')}>
         <ul className="summary-bullets">
           <li>登录后数据保存在 Supabase 云端，按账户（auth.uid）隔离，启用 RLS。</li>
           <li>请使用自己的邮箱与密码；不要在公共电脑保存登录态。</li>

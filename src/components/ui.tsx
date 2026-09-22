@@ -13,6 +13,7 @@ import {
   sheetEnter,
   tapSpring,
 } from '../lib/motion'
+import { useLocale } from '../context/LocaleContext'
 
 export function Card({
   children,
@@ -88,9 +89,10 @@ export function Field({
 }
 
 export function Disclaimer() {
+  const { t } = useLocale()
   return (
     <div className="disclaimer" role="note">
-      本工具仅用于个人状态记录与就医沟通，不能替代专业医疗诊断或治疗。如有紧急情况，请立即联系当地急救或专业医疗机构。
+      {t('common.disclaimer')}
     </div>
   )
 }
@@ -98,15 +100,17 @@ export function Disclaimer() {
 export function MoodSlider({
   value,
   onChange,
-  label = '情绪评分（1–10）',
+  label,
 }: {
   value: number
   onChange: (v: number) => void
   label?: string
 }) {
+  const { t } = useLocale()
+  const resolvedLabel = label ?? t('ui.moodSlider')
   return (
     <div className="mood-slider field">
-      <label>{label}</label>
+      <label>{resolvedLabel}</label>
       <div className="mood-value" aria-live="polite">
         {value}
       </div>
@@ -120,7 +124,7 @@ export function MoodSlider({
         aria-valuemin={1}
         aria-valuemax={10}
         aria-valuenow={value}
-        aria-label={label}
+        aria-label={resolvedLabel}
       />
       <div
         className="row"
@@ -232,6 +236,7 @@ export function Page({
   back?: boolean | (() => void)
 }) {
   const navigate = useNavigate()
+  const { t } = useLocale()
   const showBack = back !== false
   const handleBack = () => {
     if (typeof back === 'function') back()
@@ -248,7 +253,7 @@ export function Page({
           type="button"
           className="page-back"
           onClick={handleBack}
-          aria-label="返回"
+          aria-label={t('common.back')}
         >
           <BackChevronIcon />
         </button>

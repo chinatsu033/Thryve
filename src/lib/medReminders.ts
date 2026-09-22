@@ -5,6 +5,8 @@
 import { format } from 'date-fns'
 import type { Medication, MedLog } from '../types'
 import { dosesForDay } from './meds'
+import { getStoredLanguage } from './locale'
+import { translate } from '../locales/messages'
 
 type TimerHandle = ReturnType<typeof setTimeout>
 
@@ -51,7 +53,7 @@ function alreadyLogged(logs: MedLog[], medId: string, dateKey: string, time: str
 
 function fireNotification(med: Medication, time: string): void {
   if (!notificationSupported() || Notification.permission !== 'granted') return
-  const title = '用药提醒'
+  const title = translate(getStoredLanguage(), 'med.reminder.title')
   const body = time
     ? `${med.name}${med.dosage ? `（${med.dosage}）` : ''} · ${time}`
     : `${med.name}${med.dosage ? `（${med.dosage}）` : ''}`

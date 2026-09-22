@@ -35,6 +35,7 @@ import {
   rescheduleMedReminders,
 } from '../lib/medReminders'
 import type { MedLog, Medication } from '../types'
+import { useLocale } from '../context/LocaleContext'
 
 const DOW_CHIPS: { v: number; label: string }[] = [
   { v: 0, label: '日' },
@@ -85,6 +86,7 @@ function formFromMed(m: Medication): MedForm {
 }
 
 export function MedsPanel({ userId }: { userId: string }) {
+  const { t: tr } = useLocale()
   const [meds, setMeds] = useState<Medication[]>([])
   const [logs, setLogs] = useState<MedLog[]>([])
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -137,7 +139,7 @@ export function MedsPanel({ userId }: { userId: string }) {
   useEffect(() => {
     void reload().catch((e) => {
       console.error(e)
-      setMsg(e instanceof Error ? e.message : '加载失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.loadFail'))
     })
   }, [reload])
 
@@ -176,14 +178,14 @@ export function MedsPanel({ userId }: { userId: string }) {
   const saveMed = async () => {
     const name = form.name.trim()
     if (!name) {
-      setMsg('请填写药品名称')
+      setMsg(tr('med.edit.needName2'))
       return
     }
     const times = form.reminderTimes
       .map((t) => normalizeReminderTime(t))
       .filter((t): t is string => Boolean(t))
     if (!times.length) {
-      setMsg('请至少添加一个有效提醒时间（HH:mm）')
+      setMsg(tr('med.edit.needTime2'))
       return
     }
     setBusy(true)
@@ -228,7 +230,7 @@ export function MedsPanel({ userId }: { userId: string }) {
       setMsg('')
       await reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '保存失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.saveFail'))
     } finally {
       setBusy(false)
     }
@@ -241,7 +243,7 @@ export function MedsPanel({ userId }: { userId: string }) {
       await deleteMedication(m.id)
       await reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '删除失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.deleteFail'))
     } finally {
       setBusy(false)
     }
@@ -269,7 +271,7 @@ export function MedsPanel({ userId }: { userId: string }) {
       }
       await reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '打卡失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.logFail'))
     } finally {
       setBusy(false)
     }
@@ -338,7 +340,7 @@ export function MedsPanel({ userId }: { userId: string }) {
       </div>
 
       {meds.length === 0 ? (
-        <Empty text="暂无药品，点击「添加」开始" />
+        <Empty text={tr('med.cal.emptyAdd')} />
       ) : (
         <div className="list">
           {meds.map((m) => (
@@ -354,7 +356,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                   {!m.enabled ? <span className="hint"> · 已停用</span> : null}
                 </strong>
                 <div className="hint">
-                  {m.dosage || '剂量未填'}
+                  {m.dosage || tr('med.cal.dosageUnset')}
                   {m.reminderTimes.length
                     ? ` · ${m.reminderTimes.join('、')}`
                     : ''}
@@ -378,10 +380,10 @@ export function MedsPanel({ userId }: { userId: string }) {
       <Modal
         open={Boolean(selectedDay)}
         onClose={() => setSelectedDay(null)}
-        title={selectedDay ? `${selectedDay} 用药` : '用药'}
+        title={selectedDay ? `${selectedDay} 用药` : tr('brand.remedy')}
       >
         {dayDoses.length === 0 ? (
-          <Empty text="这一天没有计划用药" />
+          <Empty text={tr('med.cal.noPlan')} />
         ) : (
           <div className="list">
             {dayDoses.map((d) => (
@@ -389,16 +391,16 @@ export function MedsPanel({ userId }: { userId: string }) {
                 <div style={{ flex: 1 }}>
                   <strong>{d.medication.name}</strong>
                   <div className="hint">
-                    {d.time || '全天'}
+                    {d.time || tr('common.allDay')}
                     {d.medication.dosage ? ` · ${d.medication.dosage}` : ''}
                     {' · '}
                     {d.status === 'taken'
-                      ? '已服'
+                      ? tr('med.status.taken')
                       : d.status === 'skipped'
-                        ? '已跳过'
+                        ? tr('med.status.skipped')
                         : d.status === 'missed'
-                          ? '漏服'
-                          : '待服'}
+                          ? tr('med.status.missed')
+                          : tr('med.status.pending')}
                   </div>
                 </div>
                 <Button
@@ -426,23 +428,23 @@ export function MedsPanel({ userId }: { userId: string }) {
       <Modal
         open={editMed !== null}
         onClose={() => setEditMed(null)}
-        title={editMed === 'new' ? '添加药品' : '编辑药品'}
+        title={editMed === 'new' ? tr('med.edit.addMed') : tr('med.edit.editMed')}
       >
-        <Field label="名称">
+        <Field label={tr('med.edit.name')}>
           <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="如：舍曲林"
+            placeholder={tr('med.edit.namePh2')}
           />
         </Field>
-        <Field label="剂量">
+        <Field label={tr('med.edit.dosageLabel')}>
           <input
             value={form.dosage}
             onChange={(e) => setForm({ ...form, dosage: e.target.value })}
-            placeholder="如：50mg"
+            placeholder={tr('med.edit.dosagePh2')}
           />
         </Field>
-        <Field label="提醒时间" hint="点击时间用表盘选择，可添加多个">
+        <Field label={tr('med.edit.reminders')} hint={tr('med.edit.remindersHint2')}>
           <div className="med-times">
             {form.reminderTimes.map((t, i) => (
               <div key={i} className="row" style={{ gap: 8, alignItems: 'center' }}>
@@ -450,9 +452,9 @@ export function MedsPanel({ userId }: { userId: string }) {
                   type="button"
                   className="chip med-time-chip"
                   onClick={() => openTimePicker(i)}
-                  aria-label={`提醒时间 ${t || '未设置'}`}
+                  aria-label={`提醒时间 ${t || tr('common.unset')}`}
                 >
-                  {normalizeReminderTime(t) || t || '选择时间'}
+                  {normalizeReminderTime(t) || t || tr('common.selectTime')}
                 </button>
                 <Button
                   variant="ghost"
@@ -477,7 +479,7 @@ export function MedsPanel({ userId }: { userId: string }) {
             </Button>
           </div>
           {pickingIndex != null ? (
-            <div className="med-clock-panel" role="dialog" aria-label="选择提醒时间">
+            <div className="med-clock-panel" role="dialog" aria-label={tr('med.edit.pickTimeAria')}>
               <AnalogClockPicker
                 variant="surface"
                 hour={pickH}
@@ -503,7 +505,7 @@ export function MedsPanel({ userId }: { userId: string }) {
             </div>
           ) : null}
         </Field>
-        <Field label="服药日" hint="不选则每天">
+        <Field label={tr('med.edit.days')} hint={tr('med.edit.daysHint')}>
           <div className="chip-row">
             <button
               type="button"
@@ -537,14 +539,14 @@ export function MedsPanel({ userId }: { userId: string }) {
             })}
           </div>
         </Field>
-        <Field label="颜色">
+        <Field label={tr('med.edit.color')}>
           <input
             type="color"
             value={form.color}
             onChange={(e) => setForm({ ...form, color: e.target.value })}
           />
         </Field>
-        <Field label="备注">
+        <Field label={tr('common.notes')}>
           <textarea
             rows={2}
             value={form.notes}
@@ -561,7 +563,7 @@ export function MedsPanel({ userId }: { userId: string }) {
         </label>
         <div className="row" style={{ marginTop: 12 }}>
           <Button disabled={busy} onClick={() => void saveMed()}>
-            {busy ? '保存中…' : '保存'}
+            {busy ? tr('common.saving') : tr('common.save')}
           </Button>
           <Button variant="ghost" onClick={() => setEditMed(null)}>
             取消

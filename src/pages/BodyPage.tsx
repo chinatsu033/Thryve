@@ -6,9 +6,9 @@ import { SleepFlowSheet } from '../components/SleepFlowSheet'
 import { Button, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
-import { appetiteLabel, normalizeAppetite } from '../lib/eating'
+import { normalizeAppetite, appetiteLabelKey } from '../lib/eating'
 import { tabSwapMotion } from '../lib/motion'
-import { sleepQualityLabel } from '../lib/sleep'
+import { sleepQualityLabelKey } from '../lib/sleep'
 import {
   deleteEating,
   deleteSleep,
@@ -18,10 +18,12 @@ import {
   putSleep,
 } from '../lib/db'
 import type { EatingEntry, SleepEntry } from '../types'
+import { useLocale } from '../context/LocaleContext'
 
 type Tab = 'sleep' | 'eating' | 'meds'
 
 export function BodyPage() {
+  const { t } = useLocale()
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('sleep')
@@ -44,8 +46,8 @@ export function BodyPage() {
 
   return (
     <Page
-      title="基石"
-      sub="睡眠、饮食与用药轻量打卡。"
+      title={t('nav.cornerstone')}
+      sub={t('body.sub')}
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
       actions={
         tab === 'meds' ? null : (
@@ -58,9 +60,9 @@ export function BodyPage() {
       <div className="chip-row">
         {(
           [
-            ['sleep', '睡眠'],
-            ['eating', '饮食'],
-            ['meds', '用药'],
+            ['sleep', t('brand.rest')],
+            ['eating', t('brand.nourish')],
+            ['meds', t('brand.remedy')],
           ] as const
         ).map(([k, label]) => (
           <button
@@ -96,7 +98,7 @@ export function BodyPage() {
           ) : null}
           {tab === 'meds' ? (
             <p className="hint" style={{ marginBottom: 10 }}>
-              用药提醒与打卡请到首页「微光日历」管理；此处不再重复日历。
+              {t('body.medsHint')}
             </p>
           ) : null}
         </motion.div>
@@ -131,13 +133,14 @@ function SleepList({
   items: SleepEntry[]
   onDelete: (id: string) => Promise<void>
 }) {
-  if (!items.length) return <Empty text="暂无睡眠记录" />
+  const { t } = useLocale()
+  if (!items.length) return <Empty text={t('body.emptySleep')} />
   return (
     <div className="list">
       {items.map((s) => (
         <div key={s.id} className="list-item">
           <div>
-            <strong>{s.date}</strong> · {sleepQualityLabel(s.quality)}
+            <strong>{s.date}</strong> · {t(sleepQualityLabelKey(s.quality))}
             <div className="hint">
               {s.bedtime || '—'} → {s.wakeTime || '—'}
             </div>
@@ -159,13 +162,14 @@ function EatingList({
   items: EatingEntry[]
   onDelete: (id: string) => Promise<void>
 }) {
-  if (!items.length) return <Empty text="暂无饮食记录" />
+  const { t } = useLocale()
+  if (!items.length) return <Empty text={t('body.emptyEating')} />
   return (
     <div className="list">
       {items.map((e) => (
         <div key={e.id} className="list-item">
           <div>
-            <strong>{e.date}</strong> · {appetiteLabel(e.appetite)}
+            <strong>{e.date}</strong> · {t(appetiteLabelKey(e.appetite))}
             <div className="hint">约 {e.meals} 餐 · 食欲 {normalizeAppetite(e.appetite)}/5</div>
             {e.notes ? <p style={{ margin: '6px 0 0' }}>{e.notes}</p> : null}
           </div>

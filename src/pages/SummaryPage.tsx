@@ -1,5 +1,5 @@
 import { format, parseISO, subDays, isWithinInterval, startOfDay, endOfDay, eachDayOfInterval } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { dateFnsLocale } from '../lib/dateLocale'
 import { motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -27,9 +27,9 @@ import {
 } from '../lib/db'
 import { adherenceSummary } from '../lib/meds'
 import { chartEnter } from '../lib/motion'
-import { moodSoftLabel, normalizeMood } from '../lib/mood'
-import { appetiteLabel, normalizeAppetite } from '../lib/eating'
-import { normalizeSleepQuality, sleepQualityLabel } from '../lib/sleep'
+import { normalizeMood, moodSoftLabelKey } from '../lib/mood'
+import { normalizeAppetite, appetiteLabelKey } from '../lib/eating'
+import { normalizeSleepQuality, sleepQualityLabelKey } from '../lib/sleep'
 import type {
   AttachmentMeta,
   EatingEntry,
@@ -38,6 +38,7 @@ import type {
   Medication,
   SleepEntry,
 } from '../types'
+import { useLocale } from '../context/LocaleContext'
 
 type RangeKey = '7' | '14' | '30' | 'custom'
 
@@ -55,6 +56,7 @@ function mood100(e: EmotionEntry): number {
 }
 
 export function SummaryPage() {
+  const { t, language } = useLocale()
   const { profile } = useAuth()
   const navigate = useNavigate()
   const [range, setRange] = useState<RangeKey>('14')
@@ -144,7 +146,7 @@ export function SummaryPage() {
       const sleep = filteredSleeps.find((s) => s.date === key)
       const eating = filteredEatings.find((e) => e.date === key)
       return {
-        date: format(day, 'M/d', { locale: zhCN }),
+        date: format(day, 'M/d', { locale: dateFnsLocale(language) }),
         full: key,
         mood: avgMood,
         sleep: sleep ? normalizeSleepQuality(sleep.quality) : null,
@@ -161,21 +163,21 @@ export function SummaryPage() {
       const min = Math.min(...moods)
       const max = Math.max(...moods)
       lines.push(
-        `情绪记录 ${moods.length} 条，平均约「${moodSoftLabel(avg)}」（相对量表 0–100：均 ${avg.toFixed(0)}，最低 ${min.toFixed(0)}，最高 ${max.toFixed(0)}）。`,
+        `情绪记录 ${moods.length} 条，平均约「${t(moodSoftLabelKey(avg))}」（相对量表 0–100：均 ${avg.toFixed(0)}，最低 ${min.toFixed(0)}，最高 ${max.toFixed(0)}）。`,
       )
       const tagCount = new Map<string, number>()
       filteredEmotions.forEach((e) => e.tags.forEach((t) => tagCount.set(t, (tagCount.get(t) ?? 0) + 1)))
       const top = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
       if (top.length) lines.push(`常见情绪标签：${top.map(([t, n]) => `${t}(${n})`).join('、')}。`)
     } else {
-      lines.push('本区间暂无情绪记录。')
+      lines.push(t('summary.line.noMood'))
     }
     if (filteredSleeps.length) {
       const avgQ =
         filteredSleeps.reduce((a, b) => a + normalizeSleepQuality(b.quality), 0) /
         filteredSleeps.length
       lines.push(
-        `睡眠记录 ${filteredSleeps.length} 天，平均约「${sleepQualityLabel(avgQ)}」（1–7 均 ${avgQ.toFixed(1)}）。`,
+        `睡眠记录 ${filteredSleeps.length} 天，平均约「${t(sleepQualityLabelKey(avgQ))}」（1–7 均 ${avgQ.toFixed(1)}）。`,
       )
     }
     if (filteredEatings.length) {
@@ -183,18 +185,18 @@ export function SummaryPage() {
         filteredEatings.reduce((a, b) => a + normalizeAppetite(b.appetite), 0) /
         filteredEatings.length
       lines.push(
-        `饮食记录 ${filteredEatings.length} 天，平均约「${appetiteLabel(avgA)}」（1–5 均 ${avgA.toFixed(1)}）。`,
+        `饮食记录 ${filteredEatings.length} 天，平均约「${t(appetiteLabelKey(avgA))}」（1–5 均 ${avgA.toFixed(1)}）。`,
       )
     }
     if (medications.length === 0) {
-      lines.push('并未记录是否用药。')
+      lines.push(t('summary.line.noMedFlag'))
     } else {
       const from = format(interval.start, 'yyyy-MM-dd')
       const to = format(interval.end, 'yyyy-MM-dd')
       const names = medications.map((m) => m.name).filter(Boolean)
       const namePart = names.length
         ? `已添加用药提醒：${names.slice(0, 8).join('、')}${names.length > 8 ? '等' : ''}。`
-        : '已添加用药提醒。'
+        : t('summary.line.medRemindersPlain')
       lines.push(namePart)
       const ad = adherenceSummary(medications, medLogs, from, to)
       if (ad.due > 0) {
@@ -210,13 +212,13 @@ export function SummaryPage() {
           const skipped = inRange.filter((l) => l.skipped).length
           lines.push(`本区间有用药打卡 ${inRange.length} 条（已服 ${taken}、跳过 ${skipped}）。`)
         } else {
-          lines.push('本区间暂无计划用药次数与打卡记录。')
+          lines.push(t('summary.line.noMedPlan'))
         }
       } else {
-        lines.push('本区间暂无计划用药次数与打卡记录。')
+        lines.push(t('summary.line.noMedPlan'))
       }
     }
-    lines.push('说明：以上为个人主观记录汇总，不能替代专业诊断。')
+    lines.push(t('summary.line.disclaimer'))
     return lines
   }, [filteredEmotions, filteredSleeps, filteredEatings, medications, medLogs, interval, profile])
 
@@ -230,7 +232,7 @@ export function SummaryPage() {
       '',
       ...bullets.map((b) => `· ${b}`),
       '',
-      '本工具仅用于个人状态记录与就医沟通，不能替代专业医疗诊断或治疗。',
+      t('summary.export.footer'),
     ].join('\n')
   }, [interval, profile, bullets])
 
@@ -241,11 +243,11 @@ export function SummaryPage() {
   }
 
   const onUpload = async (_files: FileList | null) => {
-    alert('云端附件存储尚未开放（MVP）。请先使用「复制文字总结」或导出 JSON。')
+    alert(t('summary.attachUnavailable'))
   }
 
   const removeAttach = async (id: string) => {
-    if (!confirm('删除此附件？')) return
+    if (!confirm(t('summary.deleteAttachment'))) return
     await deleteAttachment(id)
     await reload()
   }
@@ -265,20 +267,20 @@ export function SummaryPage() {
 
   return (
     <Page
-      title="心迹"
-      sub="按区间汇总情绪、睡眠、饮食与用药记录，便于就诊沟通。"
+      title={t('nav.heartprint')}
+      sub={t('summary.sub')}
       back={() => navigate('/', { state: { homeLayer: 'dashboard' } })}
     >
       <Disclaimer />
 
-      <Card title="时间范围" className="no-print">
+      <Card title={t('summary.range')} className="no-print">
         <div className="chip-row">
           {(
             [
-              ['7', '近 7 天'],
-              ['14', '近 14 天'],
-              ['30', '近 30 天'],
-              ['custom', '自定义'],
+              ['7', t('summary.range.7')],
+              ['14', t('summary.range.14')],
+              ['30', t('summary.range.30')],
+              ['custom', t('summary.range.custom')],
             ] as const
           ).map(([k, label]) => (
             <button
@@ -293,23 +295,23 @@ export function SummaryPage() {
         </div>
         {range === 'custom' ? (
           <div className="row">
-            <Field label="开始">
+            <Field label={t('summary.from')}>
               <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
             </Field>
-            <Field label="结束">
+            <Field label={t('summary.to')}>
               <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
             </Field>
           </div>
         ) : null}
         <div className="row">
-          <Button onClick={() => void copyText()}>{copyOk ? '已复制' : '复制文字总结'}</Button>
+          <Button onClick={() => void copyText()}>{copyOk ? '已复制' : t('summary.copy')}</Button>
           <Button variant="ghost" onClick={() => window.print()}>
             打印 / 另存 PDF
           </Button>
         </div>
       </Card>
 
-      <Card title="自动要点">
+      <Card title={t('summary.bullets')}>
         <ul className="summary-bullets">
           {bullets.map((b) => (
             <li key={b}>{b}</li>
@@ -317,9 +319,9 @@ export function SummaryPage() {
         </ul>
       </Card>
 
-      <Card title="情绪与身心趋势">
+      <Card title={t('summary.chart')}>
         {chartData.every((d) => d.mood == null && d.sleep == null && d.appetite == null) ? (
-          <Empty text="本区间暂无图表数据" />
+          <Empty text={t('summary.chartEmpty')} />
         ) : (
           <motion.div
             {...chartEnter}
@@ -345,9 +347,9 @@ export function SummaryPage() {
                 <Tooltip
                   formatter={(value, name) => {
                     if (value == null) return ['—', String(name)]
-                    if (name === '情绪') return [Number(value).toFixed(0), '情绪(0–100)']
-                    if (name === '睡眠质量') return [sleepQualityLabel(Number(value)), '睡眠']
-                    if (name === '食欲') return [appetiteLabel(Number(value)), '食欲']
+                    if (name === t('summary.series.mood')) return [Number(value).toFixed(0), t('summary.series.moodScale')]
+                    if (name === t('summary.series.sleep')) return [t(sleepQualityLabelKey(Number(value))), t('brand.rest')]
+                    if (name === t('summary.series.appetite')) return [t(appetiteLabelKey(Number(value))), t('summary.series.appetite')]
                     return [String(value), String(name)]
                   }}
                 />
@@ -356,7 +358,7 @@ export function SummaryPage() {
                   yAxisId="mood"
                   type="monotone"
                   dataKey="mood"
-                  name="情绪"
+                  name={t('summary.series.mood')}
                   stroke="var(--color-primary)"
                   strokeWidth={2.5}
                   dot={{ r: 3 }}
@@ -366,7 +368,7 @@ export function SummaryPage() {
                   yAxisId="body"
                   type="monotone"
                   dataKey="sleep"
-                  name="睡眠质量"
+                  name={t('summary.series.sleep')}
                   stroke="var(--color-accent)"
                   strokeWidth={2}
                   dot={{ r: 3 }}
@@ -376,7 +378,7 @@ export function SummaryPage() {
                   yAxisId="body"
                   type="monotone"
                   dataKey="appetite"
-                  name="食欲"
+                  name={t('summary.series.appetite')}
                   stroke="#FF8A65"
                   strokeWidth={2}
                   dot={{ r: 3 }}
@@ -388,11 +390,11 @@ export function SummaryPage() {
         )}
       </Card>
 
-      <Card title="情绪日历热力图">
+      <Card title={t('summary.heatmap')}>
         <div className="hint" style={{ marginBottom: 8 }}>
           按日平均情绪着色（越蓝越高；量表 0–100）
         </div>
-        <div className="heatmap" aria-label="情绪热力图">
+        <div className="heatmap" aria-label={t('summary.heatmapAria')}>
           {chartData.map((d) => (
             <div
               key={d.full}
@@ -401,7 +403,7 @@ export function SummaryPage() {
                 background: moodColor(d.mood ?? undefined),
                 color: d.mood != null && d.mood >= 55 ? '#fff' : 'var(--color-text-muted)',
               }}
-              title={d.mood != null ? `${d.full}: ${moodSoftLabel(d.mood)}` : `${d.full}: 无数据`}
+              title={d.mood != null ? `${d.full}: ${t(moodSoftLabelKey(d.mood))}` : `${d.full}: 无数据`}
             >
               {d.date.split('/')[1]}
             </div>
@@ -409,9 +411,9 @@ export function SummaryPage() {
         </div>
       </Card>
 
-      <Card title="附件（PDF / 图片）" className="no-print">
+      <Card title={t('summary.attachments')} className="no-print">
         <p className="hint">云端附件（Storage）暂未开放；MVP 请用文字总结或 JSON 导出。</p>
-        <Field label="上传（暂不可用）">
+        <Field label={t('summary.uploadDisabled')}>
           <input
             type="file"
             accept="image/*,application/pdf"
@@ -420,7 +422,7 @@ export function SummaryPage() {
           />
         </Field>
         {attachments.length === 0 ? (
-          <Empty text="暂无附件" />
+          <Empty text={t('summary.noAttachments')} />
         ) : (
           <div className="attach-list">
             {attachments.map((a) => (
@@ -449,7 +451,7 @@ export function SummaryPage() {
                   </div>
                   <div className="hint">
                     {(a.size / 1024).toFixed(0)} KB ·{' '}
-                    {format(parseISO(a.createdAt), 'yyyy-MM-dd HH:mm', { locale: zhCN })}
+                    {format(parseISO(a.createdAt), 'yyyy-MM-dd HH:mm', { locale: dateFnsLocale(language) })}
                   </div>
                 </div>
                 <Button variant="ghost" className="btn-sm" onClick={() => void downloadAttach(a)}>

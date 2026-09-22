@@ -142,3 +142,8 @@ export function emotionWordsForMood(mood: number): readonly string[] {
   if (i < 5) return NEGATIVE_EMOTION_WORDS
   return NEUTRAL_EMOTION_WORDS
 }
+
+/** i18n key for soft mood label (mood.0 … mood.10). */
+export function moodSoftLabelKey(mood100: number): `mood.${number}` {
+  return `mood.${moodLabelIndex(mood100)}`
+}

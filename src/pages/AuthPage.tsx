@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import { useLocale } from '../context/LocaleContext'
 
 export function AuthPage() {
+  const { t } = useLocale()
   const { profile, login, register, ready, configured } = useAuth()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -42,7 +44,7 @@ export function AuthPage() {
   }
 
   return (
-    <Page back={false} title="Thryve" sub="邮箱登录 · 云端同步 · 就医沟通助手">
+    <Page back={false} title="Thryve" sub={t('auth.sub')}>
       <Disclaimer />
       {!configured ? (
         <Card>
@@ -72,20 +74,20 @@ export function AuthPage() {
 
         {mode === 'register' ? (
           <>
-            <Field label="显示名称" hint="可选，默认定邮箱前缀">
+            <Field label="显示名称" hint={t('auth.displayName.hint')}>
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 autoComplete="nickname"
-                placeholder="例如：小明"
+                placeholder={t('auth.displayName.ph')}
               />
             </Field>
-            <Field label="邀请码" hint="注册需要有效邀请码">
+            <Field label="邀请码" hint={t('auth.invite.hint')}>
               <input
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                 autoComplete="off"
-                placeholder="例如：THRYVE26"
+                placeholder={t('auth.invite.ph')}
                 spellCheck={false}
               />
             </Field>
@@ -102,7 +104,7 @@ export function AuthPage() {
           />
         </Field>
 
-        <Field label="密码" hint={mode === 'register' ? '至少 6 位' : undefined}>
+        <Field label={t('auth.password')} hint={mode === 'register' ? '至少 6 位' : undefined}>
           <input
             type="password"
             value={password}
@@ -119,7 +121,7 @@ export function AuthPage() {
         {info ? <p className="hint">{info}</p> : null}
 
         <Button block disabled={busy || !configured} onClick={() => void submit()}>
-          {busy ? '请稍候…' : mode === 'login' ? '登录' : '注册并进入'}
+          {busy ? t('common.pleaseWait') : mode === 'login' ? t('auth.login') : t('auth.registerEnter')}
         </Button>
       </Card>
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>

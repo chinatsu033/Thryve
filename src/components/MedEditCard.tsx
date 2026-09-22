@@ -17,6 +17,11 @@ import type { Medication } from '../types'
 import { AnalogClockPicker } from './AnalogClockPicker'
 import { WheelPicker } from './WheelPicker'
 import { Button, Field, Modal } from './ui'
+import { useLocale } from '../context/LocaleContext'
+import { getStoredLanguage } from '../lib/locale'
+import { translate } from '../locales/messages'
+
+const tt = (k: string, vars?: Record<string, string>) => translate(getStoredLanguage(), k, vars)
 
 export type MedEditTarget = Medication | 'new' | null
 
@@ -43,7 +48,7 @@ function emptyForm(): MedForm {
     dosage: '',
     reminderTimes: defaultTimesForCount(1),
     intervalDays: 1,
-    freqLabel: '每天',
+    freqLabel: tt('med.freq.daily'),
     anchorDate: today,
     enabled: true,
     notes: '',
@@ -52,14 +57,14 @@ function emptyForm(): MedForm {
 }
 
 function labelForInterval(n: number): string {
-  if (n === 1) return '每天'
-  if (n === 2) return '隔天'
-  if (n === 3) return '每两天'
-  if (n === 4) return '每三天'
-  if (n === 5) return '每四天'
-  if (n === 6) return '每五天'
-  if (n === 7) return '每周'
-  return `每${n}天`
+  if (n === 1) return tt('med.freq.daily')
+  if (n === 2) return tt('med.freq.everyOther')
+  if (n === 3) return tt('med.freq.every2')
+  if (n === 4) return tt('med.freq.every3')
+  if (n === 5) return tt('med.freq.every4')
+  if (n === 6) return tt('med.freq.every5')
+  if (n === 7) return tt('med.freq.weekly')
+  return tt('med.freq.everyN', { n: String(n) })
 }
 
 function formFromMed(m: Medication): MedForm {
@@ -103,6 +108,7 @@ export function MedEditCard({
   onClose: () => void
   onSaved: () => void | Promise<void>
 }) {
+  const { t: tr } = useLocale()
   const [form, setForm] = useState<MedForm>(emptyForm())
   const [customName, setCustomName] = useState('')
   const [msg, setMsg] = useState('')
@@ -156,14 +162,14 @@ export function MedEditCard({
   const save = async () => {
     const name = (form.name.trim() || customName.trim()).trim()
     if (!name) {
-      setMsg('请选择或填写药品名称')
+      setMsg(tr('med.edit.needName'))
       return
     }
     const times = form.reminderTimes
       .map((t) => normalizeReminderTime(t))
       .filter((t): t is string => Boolean(t))
     if (!times.length) {
-      setMsg('请至少设置一个提醒时间')
+      setMsg(tr('med.edit.needTime'))
       return
     }
     setBusy(true)
@@ -208,13 +214,13 @@ export function MedEditCard({
       await onSaved()
       onClose()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '保存失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.saveFail'))
     } finally {
       setBusy(false)
     }
   }
 
-  const title = target === 'new' || !target ? '添加用药提醒' : '编辑用药提醒'
+  const title = target === 'new' || !target ? tr('med.edit.add') : tr('med.edit.edit')
   const scheduleSummary = `${form.freqLabel} · ${timesCount}次`
 
   return (
@@ -226,7 +232,7 @@ export function MedEditCard({
           </p>
         ) : null}
 
-        <Field label="常用药品" hint="点选填入名称">
+        <Field label={tr('med.edit.common')} hint={tr('med.edit.commonHint')}>
           <div className="med-common-grid">
             {COMMON_MED_NAMES.map((n) => (
               <button
@@ -244,7 +250,7 @@ export function MedEditCard({
           </div>
         </Field>
 
-        <Field label="自定义添加">
+        <Field label={tr('med.edit.custom')}>
           <input
             value={isCommon ? customName : form.name}
             onChange={(e) => {
@@ -252,19 +258,19 @@ export function MedEditCard({
               setCustomName(v)
               setForm({ ...form, name: v })
             }}
-            placeholder="输入药品名称"
+            placeholder={tr('med.edit.namePh')}
           />
         </Field>
 
-        <Field label="计量" hint="如：1片、50mg">
+        <Field label={tr('med.edit.dosage')} hint={tr('med.edit.dosageHint')}>
           <input
             value={form.dosage}
             onChange={(e) => setForm({ ...form, dosage: e.target.value })}
-            placeholder="1片 / 50mg"
+            placeholder={tr('med.edit.dosagePh')}
           />
         </Field>
 
-        <Field label="每天几次 / 间隔" hint="点按次数打开翻滚选择与间隔">
+        <Field label={tr('med.edit.times')} hint={tr('med.edit.timesHint')}>
           <div className="med-schedule-trigger-wrap">
             <button
               ref={scheduleBtnRef}
@@ -278,7 +284,7 @@ export function MedEditCard({
             </button>
 
             {scheduleOpen ? (
-              <div className="med-schedule-popover" role="dialog" aria-label="次数与间隔">
+              <div className="med-schedule-popover" role="dialog" aria-label={tr('med.edit.timesAria')}>
                 <p className="med-schedule-popover-title">每天几次</p>
                 <div className="med-schedule-wheel-row">
                   <WheelPicker
@@ -287,7 +293,7 @@ export function MedEditCard({
                     value={timesCount}
                     onChange={setTimesCount}
                     formatLabel={(v) => `${v}次`}
-                    aria-label="每天几次"
+                    aria-label={tr('med.edit.timesPerDay')}
                   />
                 </div>
                 <p className="med-schedule-popover-title" style={{ marginTop: 10 }}>
@@ -321,7 +327,7 @@ export function MedEditCard({
           </div>
         </Field>
 
-        <Field label="提醒时间" hint="点选每次时间，下方用表盘调整">
+        <Field label={tr('med.edit.reminders')} hint={tr('med.edit.remindersHint')}>
           <div className="med-times med-times--scroll">
             {form.reminderTimes.map((t, i) => (
               <div key={i} className="med-time-row">
@@ -330,9 +336,9 @@ export function MedEditCard({
                   type="button"
                   className={`chip med-time-chip${pickingIndex === i ? ' active' : ''}`}
                   onClick={() => openTimePicker(i)}
-                  aria-label={`第${i + 1}次提醒时间 ${t || '未设置'}`}
+                  aria-label={`第${i + 1}次提醒时间 ${t || tr('common.unset')}`}
                 >
-                  {normalizeReminderTime(t) || t || '选择时间'}
+                  {normalizeReminderTime(t) || t || tr('common.selectTime')}
                 </button>
               </div>
             ))}
@@ -340,7 +346,7 @@ export function MedEditCard({
         </Field>
 
         {pickingIndex != null ? (
-          <div className="med-clock-panel" role="dialog" aria-label="选择提醒时间">
+          <div className="med-clock-panel" role="dialog" aria-label={tr('med.edit.pickTimeAria')}>
             <AnalogClockPicker
               variant="surface"
               hour={pickH}
@@ -377,7 +383,7 @@ export function MedEditCard({
 
         <div className="med-edit-actions">
           <Button disabled={busy} onClick={() => void save()}>
-            {busy ? '保存中…' : '保存'}
+            {busy ? tr('common.saving') : tr('common.save')}
           </Button>
           <Button variant="ghost" onClick={onClose}>
             取消

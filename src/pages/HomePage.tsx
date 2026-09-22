@@ -1,5 +1,5 @@
 import { format, parseISO } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { dateFnsLocale, datePattern } from '../lib/dateLocale'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
@@ -10,11 +10,12 @@ import { Button, Card, Disclaimer, Empty, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { uid } from '../lib/crypto'
 import { listEatings, listEmotions, listSleeps, putEmotion } from '../lib/db'
-import { moodSoftLabel, normalizeMood } from '../lib/mood'
-import { appetiteLabel } from '../lib/eating'
+import { normalizeMood, moodSoftLabelKey } from '../lib/mood'
+import { appetiteLabelKey } from '../lib/eating'
 import { easeOutSoft, layerTransition } from '../lib/motion'
-import { sleepQualityLabel } from '../lib/sleep'
+import { sleepQualityLabelKey } from '../lib/sleep'
 import type { EatingEntry, EmotionEntry, SleepEntry } from '../types'
+import { useLocale } from '../context/LocaleContext'
 
 type Layer = 'landing' | 'dashboard'
 
@@ -35,16 +36,6 @@ const SWIPE_THRESHOLD = 140
 /** Reject gesture if horizontal drift is too large relative to vertical. */
 const SWIPE_HORIZONTAL_MAX_RATIO = 0.65
 
-const DASHBOARD_MODULES: Array<{
-  to: string
-  label: string
-  hint: string
-  variant: 'primary' | 'accent' | 'ghost'
-}> = [
-  { to: '/summary', label: '心迹', hint: '就医总结', variant: 'ghost' },
-  { to: '/emotion', label: '倾听', hint: '情绪记录', variant: 'primary' },
-  { to: '/body', label: '基石', hint: '睡眠·饮食·用药', variant: 'accent' },
-]
 
 function fullShellRect(): ShellRect {
   return {
@@ -127,6 +118,18 @@ function CrisisHelpIcon() {
 }
 
 export function HomePage() {
+  const { t, language } = useLocale()
+
+  const dashboardModules: Array<{
+    to: string
+    label: string
+    hint: string
+    variant: 'primary' | 'accent' | 'ghost'
+  }> = [
+    { to: '/summary', label: t('nav.heartprint'), hint: '就医总结', variant: 'ghost' },
+    { to: '/emotion', label: t('nav.attune'), hint: t('nav.attune.hint'), variant: 'primary' },
+    { to: '/body', label: t('nav.cornerstone'), hint: t('nav.cornerstone.hint'), variant: 'accent' },
+  ]
   const { profile } = useAuth()
   const location = useLocation()
   const reduceMotion = useReducedMotion()
@@ -270,7 +273,7 @@ export function HomePage() {
   const latestEating = eatings[0]
   const sceneMood = latestMood ? normalizeMood(latestMood.mood, latestMood) : 50
 
-  const labelFor = (e: EmotionEntry) => moodSoftLabel(normalizeMood(e.mood, e))
+  const labelFor = (e: EmotionEntry) => t(moodSoftLabelKey(normalizeMood(e.mood, e)))
   const showScenicChrome = !emotionFlowOpen
   const morphDuration = reduceMotion ? 0.01 : 0.48
 
@@ -356,7 +359,7 @@ export function HomePage() {
                     type="button"
                     className="home-chevron-float home-chevron-up"
                     onClick={goDashboard}
-                    aria-label="进入首页"
+                    aria-label={t('home.enterDash')}
                     animate={{ opacity: shellMode === 'card' ? 0 : 1 }}
                     transition={{ duration: morphDuration, ease: easeOutSoft }}
                     style={{ pointerEvents: shellMode === 'card' ? 'none' : 'auto' }}
@@ -416,14 +419,14 @@ export function HomePage() {
                 type="button"
                 className="home-chevron-box home-chevron-down"
                 onClick={goLanding}
-                aria-label="返回风景页"
+                aria-label={t('home.backScenic')}
               >
                 <ChevronDownIcon />
               </button>
             </div>
 
-            <nav className="row home-cta-row" aria-label="入口模块" style={{ marginBottom: 14 }}>
-              {DASHBOARD_MODULES.map((m) => (
+            <nav className="row home-cta-row" aria-label={t('nav.modules')} style={{ marginBottom: 14 }}>
+              {dashboardModules.map((m) => (
                 <Link key={m.to} to={m.to} className="home-cta-link">
                   <Button block variant={m.variant} className="home-cta-btn">
                     <span className="home-cta-label">{m.label}</span>
@@ -435,37 +438,37 @@ export function HomePage() {
 
             <MedGlowCalendar userId={profile.id} onInteractionChange={setMedGestureLock} />
 
-            <Card title="今日速览">
+            <Card title={t('brand.todayGlimpse')}>
               {latestMood ? (
                 <p>
                   最近情绪：<strong>{labelFor(latestMood)}</strong>
                   {latestMood.tags.length ? ` · ${latestMood.tags.join('、')}` : ''}
                   <br />
                   <span className="meta hint">
-                    {format(parseISO(latestMood.recordedAt), 'M月d日 HH:mm', { locale: zhCN })}
+                    {format(parseISO(latestMood.recordedAt), datePattern(language, 'monthDayTime'), { locale: dateFnsLocale(language) })}
                     {latestMood.mode === 'daily' ? ' · 全天总结' : ' · 当下感受'}
                   </span>
                 </p>
               ) : (
-                <Empty text="还没有情绪记录，去写一条吧。" />
+                <Empty text={t('home.emptyMood')} />
               )}
               {latestSleep ? (
                 <p style={{ marginTop: 10 }}>
-                  最近睡眠：<strong>{sleepQualityLabel(latestSleep.quality)}</strong>
+                  最近睡眠：<strong>{t(sleepQualityLabelKey(latestSleep.quality))}</strong>
                   <span className="hint"> · {latestSleep.date}</span>
                 </p>
               ) : null}
               {latestEating ? (
                 <p style={{ marginTop: 10 }}>
-                  最近饮食：<strong>{appetiteLabel(latestEating.appetite)}</strong>
+                  最近饮食：<strong>{t(appetiteLabelKey(latestEating.appetite))}</strong>
                   <span className="hint"> · {latestEating.date}</span>
                 </p>
               ) : null}
             </Card>
 
-            <Card title="最近情绪">
+            <Card title={t('home.recentEmotions')}>
               {emotions.slice(0, 3).length === 0 ? (
-                <Empty text="暂无记录" />
+                <Empty text={t('common.empty')} />
               ) : (
                 <div className="list">
                   {emotions.slice(0, 3).map((e) => (
@@ -475,7 +478,7 @@ export function HomePage() {
                         {e.tags.length ? ` · ${e.tags.join('、')}` : ''}
                         {e.notes ? <div className="hint">{e.notes.slice(0, 80)}</div> : null}
                         <div className="meta">
-                          {format(parseISO(e.recordedAt), 'yyyy-MM-dd HH:mm', { locale: zhCN })}
+                          {format(parseISO(e.recordedAt), 'yyyy-MM-dd HH:mm', { locale: dateFnsLocale(language) })}
                         </div>
                       </div>
                     </div>
@@ -487,11 +490,11 @@ export function HomePage() {
             <Disclaimer />
 
             <div className="home-fab-stack">
-              <Link to="/help/crisis" className="home-crisis-fab" aria-label="紧急求助">
+              <Link to="/help/crisis" className="home-crisis-fab" aria-label={t('brand.urgentCare')}>
                 <CrisisHelpIcon />
                 <span>求助</span>
               </Link>
-              <Link to="/settings" className="home-settings-fab" aria-label="设置">
+              <Link to="/settings" className="home-settings-fab" aria-label={t('brand.settings')}>
                 <SettingsGearIcon />
               </Link>
             </div>

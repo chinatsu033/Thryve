@@ -152,3 +152,42 @@ export function regionLabel(region: RegionId, language: LanguageId): string {
   if (language === 'en') return REGION_LABELS_EN[region]
   return REGION_LABELS[region]
 }
+
+
+/** BCP 47 / HTML lang for <html lang>. */
+export function htmlLangFor(language: LanguageId): string {
+  switch (language) {
+    case 'en':
+      return 'en'
+    case 'ja':
+      return 'ja'
+    case 'ko':
+      return 'ko'
+    case 'zh-Hant-HK':
+      return 'zh-HK'
+    case 'zh-Hant-TW':
+      return 'zh-TW'
+    default:
+      return 'zh-CN'
+  }
+}
+
+/** date-fns locale module name hint — import in callers from date-fns/locale. */
+export type DateFnsLocaleId = 'zhCN' | 'zhHK' | 'zhTW' | 'enUS' | 'ja' | 'ko'
+
+export function dateFnsLocaleId(language: LanguageId): DateFnsLocaleId {
+  switch (language) {
+    case 'en':
+      return 'enUS'
+    case 'ja':
+      return 'ja'
+    case 'ko':
+      return 'ko'
+    case 'zh-Hant-HK':
+      return 'zhHK'
+    case 'zh-Hant-TW':
+      return 'zhTW'
+    default:
+      return 'zhCN'
+  }
+}

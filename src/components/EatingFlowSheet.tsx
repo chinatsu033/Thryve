@@ -2,14 +2,12 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { backdropFade, sheetEnter } from '../lib/motion'
 import { format } from 'date-fns'
 import { useEffect, useState } from 'react'
-import {
-  appetiteBandFromContinuous,
-  appetiteLabel,
-  mealsFromAppetite,
-} from '../lib/eating'
+import { appetiteBandFromContinuous,
+  mealsFromAppetite,  appetiteLabelKey } from '../lib/eating'
 import type { EatingEntry } from '../types'
 import { DiningTableScene } from './DiningTableScene'
 import { Button } from './ui'
+import { useLocale } from '../context/LocaleContext'
 
 type Props = {
   open: boolean
@@ -18,6 +16,7 @@ type Props = {
 }
 
 export function EatingFlowSheet({ open, onClose, onSave }: Props) {
+  const { t } = useLocale()
   const [appetite, setAppetite] = useState(3)
   const [busy, setBusy] = useState(false)
 
@@ -59,17 +58,17 @@ export function EatingFlowSheet({ open, onClose, onSave }: Props) {
             className="flow-sheet flow-sheet-lake eating-flow-sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="饮食记录"
+            aria-label={t('eating.flow.aria')}
             {...sheetEnter}
           >
-            <button type="button" className="flow-close" onClick={onClose} aria-label="关闭">
+            <button type="button" className="flow-close" onClick={onClose} aria-label={t('common.close')}>
               ✕
             </button>
 
             <div className="flow-body flow-body-lake">
               <DiningTableScene appetite={appetite} className="dining-scene-card-fill" />
               <div className="sleep-feel-label eating-feel-label" aria-live="polite">
-                {appetiteLabel(band)}
+                {t(appetiteLabelKey(band))}
               </div>
               <div className="lake-overlay-controls sleep-overlay">
                 <div className="lake-slider-wrap">
@@ -83,13 +82,13 @@ export function EatingFlowSheet({ open, onClose, onSave }: Props) {
                     aria-valuemin={1}
                     aria-valuemax={5}
                     aria-valuenow={band}
-                    aria-valuetext={appetiteLabel(band)}
+                    aria-valuetext={t(appetiteLabelKey(band))}
                     aria-label="食欲"
                     className="lake-range"
                   />
                 </div>
                 <Button block disabled={busy} onClick={() => void save()}>
-                  {busy ? '保存中…' : '保存'}
+                  {busy ? t('common.saving') : t('common.save')}
                 </Button>
               </div>
             </div>

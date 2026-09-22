@@ -67,3 +67,8 @@ export function parseHm(hm: string): { hour: number; minute: number } {
   const [h, m] = hm.split(':').map(Number)
   return { hour: Number.isFinite(h) ? h : 0, minute: Number.isFinite(m) ? m : 0 }
 }
+
+/** i18n key for sleep quality (sleep.0 … sleep.6). */
+export function sleepQualityLabelKey(quality: number): `sleep.${number}` {
+  return `sleep.${normalizeSleepQuality(quality) - 1}`
+}

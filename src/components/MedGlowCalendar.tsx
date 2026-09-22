@@ -33,15 +33,22 @@ import {
 import { rescheduleMedReminders } from '../lib/medReminders'
 import { easeOutSoft } from '../lib/motion'
 import type { MedLog, Medication } from '../types'
+import { useLocale } from '../context/LocaleContext'
+import { getStoredLanguage } from '../lib/locale'
+import { translate } from '../locales/messages'
 
 const DOW = ['日', '一', '二', '三', '四', '五', '六'] as const
 
-const ADHERE_LABEL: Record<StripAdherence, string> = {
-  taken: '已服',
-  partial: '部分',
-  missed: '漏服',
-  planned: '计划',
-  none: '',
+function adhereLabel(kind: StripAdherence): string {
+  const tr = (k: string) => translate(getStoredLanguage(), k)
+  const map: Record<StripAdherence, string> = {
+    taken: tr('med.status.taken'),
+    partial: tr('med.status.partial'),
+    missed: tr('med.status.missed'),
+    planned: tr('med.status.planned'),
+    none: '',
+  }
+  return map[kind]
 }
 
 function ChevronV({ up }: { up?: boolean }) {
@@ -82,6 +89,7 @@ export function MedGlowCalendar({
   /** True while calendar expanded or any med sheet/modal is open — parent can lock home swipe. */
   onInteractionChange?: (active: boolean) => void
 }) {
+  const { t: tr } = useLocale()
   const reduceMotion = useReducedMotion()
   const [meds, setMeds] = useState<Medication[]>([])
   const [logs, setLogs] = useState<MedLog[]>([])
@@ -117,7 +125,7 @@ export function MedGlowCalendar({
   useEffect(() => {
     void reload().catch((e) => {
       console.error(e)
-      setMsg(e instanceof Error ? e.message : '加载失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.loadFail'))
     })
   }, [reload])
 
@@ -142,7 +150,7 @@ export function MedGlowCalendar({
       await deleteMedication(m.id)
       await reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '删除失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.deleteFail'))
     } finally {
       setBusy(false)
     }
@@ -170,7 +178,7 @@ export function MedGlowCalendar({
       }
       await reload()
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : '打卡失败')
+      setMsg(e instanceof Error ? e.message : tr('med.edit.logFail'))
     } finally {
       setBusy(false)
     }
@@ -191,12 +199,12 @@ export function MedGlowCalendar({
           type="button"
           className={`med-strip-day mark-${adhere} ${isToday ? 'is-today' : ''}`}
           onClick={() => setSelectedDay(key)}
-          aria-label={`${format(day, 'M月d日', { locale: zhCN })} ${ADHERE_LABEL[adhere] || '无计划'}`}
+          aria-label={`${format(day, 'M月d日', { locale: zhCN })} ${adhereLabel(adhere) || tr('med.status.none')}`}
         >
           <span className="med-strip-dow">{DOW[day.getDay()]}</span>
           <span className="med-strip-num">{format(day, 'd')}</span>
           <span className={`med-strip-dot mark-${adhere}`} />
-          <span className="med-strip-status">{ADHERE_LABEL[adhere] || '—'}</span>
+          <span className="med-strip-status">{adhereLabel(adhere) || '—'}</span>
         </button>
       )
     }
@@ -290,7 +298,7 @@ export function MedGlowCalendar({
           <button
             type="button"
             className="med-glow-chevron"
-            aria-label={expanded ? '收起日历' : '展开微光日历'}
+            aria-label={expanded ? tr('med.cal.collapse') : tr('med.cal.expand')}
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
           >
@@ -323,7 +331,7 @@ export function MedGlowCalendar({
                     {!m.enabled ? <span className="hint"> · 已停用</span> : null}
                   </strong>
                   <div className="hint">
-                    {m.dosage || '计量未填'}
+                    {m.dosage || tr('med.cal.noDosage')}
                     {m.reminderTimes.length ? ` · ${m.reminderTimes.join('、')}` : ''}
                     {` · ${frequencyLabel(m.intervalDays)}`}
                   </div>
@@ -352,7 +360,7 @@ export function MedGlowCalendar({
           + 添加用药提醒
         </Button>
         {meds.length === 0 ? (
-          <Empty text="暂无药品" />
+          <Empty text={tr('med.cal.empty')} />
         ) : (
           <div className="list" style={{ marginTop: 12 }}>
             {meds.map((m) => (
@@ -360,7 +368,7 @@ export function MedGlowCalendar({
                 <div style={{ flex: 1 }}>
                   <strong>{m.name}</strong>
                   <div className="hint">
-                    {m.dosage || '计量未填'} · {frequencyLabel(m.intervalDays)}
+                    {m.dosage || tr('med.cal.noDosage')} · {frequencyLabel(m.intervalDays)}
                     {!m.enabled ? ' · 已停用' : ''}
                   </div>
                 </div>
@@ -386,10 +394,10 @@ export function MedGlowCalendar({
       <Modal
         open={Boolean(selectedDay)}
         onClose={() => setSelectedDay(null)}
-        title={selectedDay ? `${selectedDay} 用药` : '用药'}
+        title={selectedDay ? `${selectedDay} 用药` : tr('brand.remedy')}
       >
         {dayDoses.length === 0 ? (
-          <Empty text="这一天没有计划用药" />
+          <Empty text={tr('med.cal.noPlan')} />
         ) : (
           <div className="list">
             {dayDoses.map((d) => (
@@ -397,16 +405,16 @@ export function MedGlowCalendar({
                 <div style={{ flex: 1 }}>
                   <strong>{d.medication.name}</strong>
                   <div className="hint">
-                    {d.time || '全天'}
+                    {d.time || tr('common.allDay')}
                     {d.medication.dosage ? ` · ${d.medication.dosage}` : ''}
                     {' · '}
                     {d.status === 'taken'
-                      ? '已服'
+                      ? tr('med.status.taken')
                       : d.status === 'skipped'
-                        ? '已跳过'
+                        ? tr('med.status.skipped')
                         : d.status === 'missed'
-                          ? '漏服'
-                          : '待服'}
+                          ? tr('med.status.missed')
+                          : tr('med.status.pending')}
                   </div>
                 </div>
                 <Button

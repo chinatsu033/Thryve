@@ -13,6 +13,8 @@ import { consumeInviteCode } from '../lib/invite'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { applyTheme } from '../lib/theme'
 import { DEFAULT_THEME, type Profile, type ThemeConfig } from '../types'
+import { getStoredLanguage } from '../lib/locale'
+import { translate } from '../locales/messages'
 
 interface AuthContextValue {
   ready: boolean
@@ -36,13 +38,13 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 function mapAuthError(message: string): string {
   const m = message.toLowerCase()
-  if (m.includes('invalid login')) return '邮箱或密码错误'
-  if (m.includes('email not confirmed')) return '请先到邮箱完成验证后再登录'
-  if (m.includes('user already registered')) return '该邮箱已注册，请直接登录'
-  if (m.includes('password')) return '密码不符合要求（至少 6 位）'
-  if (m.includes('rate limit') || m.includes('too many')) return '尝试过于频繁，请稍后再试'
-  if (m.includes('network') || m.includes('fetch')) return '网络异常，请检查连接'
-  return message || '操作失败'
+  if (m.includes('invalid login')) return translate(getStoredLanguage(), 'auth.err.badLogin')
+  if (m.includes('email not confirmed')) return translate(getStoredLanguage(), 'auth.err.emailConfirm')
+  if (m.includes('user already registered')) return translate(getStoredLanguage(), 'auth.err.alreadyRegistered')
+  if (m.includes('password')) return translate(getStoredLanguage(), 'auth.err.password')
+  if (m.includes('rate limit') || m.includes('too many')) return translate(getStoredLanguage(), 'auth.err.rateLimit')
+  if (m.includes('network') || m.includes('fetch')) return translate(getStoredLanguage(), 'auth.err.network')
+  return message || translate(getStoredLanguage(), 'auth.err.failed')
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -56,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const displayName =
       (u.user_metadata?.display_name as string | undefined) ||
       email.split('@')[0] ||
-      '用户'
+      translate(getStoredLanguage(), 'auth.defaultUser')
     const p = await ensureProfile(u.id, email, displayName)
     applyTheme(p.theme)
     setProfile(p)
@@ -110,18 +112,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (email: string, password: string, displayName?: string, inviteCode?: string) => {
       if (!isSupabaseConfigured) {
-        return { ok: false as const, error: '未配置云端服务，请联系管理员设置环境变量' }
+        return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.noCloud') }
       }
       const trimmed = email.trim()
-      if (!trimmed.includes('@')) return { ok: false as const, error: '请输入有效邮箱' }
-      if (password.length < 6) return { ok: false as const, error: '密码至少 6 位' }
+      if (!trimmed.includes('@')) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.badEmail') }
+      if (password.length < 6) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.shortPassword') }
 
       // Consume invite FIRST, then signUp. If signUp fails after consume, use is not
       // refunded (MVP leak). Prefer same-transaction consume+signup later if needed.
       const consumed = await consumeInviteCode(inviteCode ?? '')
       if (!consumed.ok) return { ok: false as const, error: consumed.error }
 
-      const name = displayName?.trim() || trimmed.split('@')[0] || '用户'
+      const name = displayName?.trim() || trimmed.split('@')[0] || translate(getStoredLanguage(), 'auth.defaultUser')
       const { data, error } = await supabase.auth.signUp({
         email: trimmed,
         password,
@@ -141,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!data.session) {
         return {
           ok: false as const,
-          error: '注册成功。若开启了邮箱验证，请查收邮件后再登录；否则请直接登录。',
+          error: translate(getStoredLanguage(), 'auth.registerOk'),
         }
       }
 
@@ -156,10 +158,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       if (!isSupabaseConfigured) {
-        return { ok: false as const, error: '未配置云端服务，请联系管理员设置环境变量' }
+        return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.noCloud') }
       }
       const trimmed = email.trim()
-      if (!trimmed) return { ok: false as const, error: '请输入邮箱' }
+      if (!trimmed) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.needEmail') }
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmed,
         password,

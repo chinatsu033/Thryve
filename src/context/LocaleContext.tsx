@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -16,6 +17,7 @@ import {
   setLocaleSetupDone as persistSetupDone,
   setStoredLanguage,
   setStoredRegion,
+  htmlLangFor,
   type LanguageId,
   type RegionId,
 } from '../lib/locale'
@@ -77,6 +79,10 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       translate(language, key, vars),
     [language],
   )
+
+  useEffect(() => {
+    document.documentElement.lang = htmlLangFor(language)
+  }, [language])
 
   const regionDisplayName = useCallback(
     (id?: RegionId) => regionLabel(id ?? region, language),

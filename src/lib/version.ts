@@ -1,8 +1,15 @@
 /** App marketing version (Settings / Release). */
-export const APP_VERSION = '0.1.1'
-export const APP_VERSION_LABEL = 'Ver 0.1.1'
+export const APP_VERSION = '0.1.2'
+export const APP_VERSION_LABEL = 'Ver 0.1.2'
 
 export const APP_CHANGELOG: { version: string; notes: string[] }[] = [
+  {
+    version: '0.1.2',
+    notes: [
+      '全应用多语言界面（简中 / 英 / 繁中港台 / 日 / 韩）与锁定模块名',
+      '切换语言时同步更新 html lang 与 date-fns 日期格式',
+    ],
+  },
   {
     version: '0.1.1',
     notes: [
