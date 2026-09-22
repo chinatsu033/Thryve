@@ -3,14 +3,17 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './context/AuthContext'
+import { LocaleProvider } from './context/LocaleContext'
 import './index.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={(import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/'}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <LocaleProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </LocaleProvider>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
+import { useLocale } from '../context/LocaleContext'
+import { LANGUAGE_LABELS } from '../lib/locale'
 import { deleteAllUserData, exportProfile, importIntoCurrentUser } from '../lib/db'
 import {
   createInviteCode,
@@ -24,6 +26,7 @@ import {
 export function SettingsPage() {
   const { profile, setTheme, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
+  const { region, language, t: tr, regionDisplayName } = useLocale()
   const fileRef = useRef<HTMLInputElement>(null)
   const [msg, setMsg] = useState('')
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
@@ -161,16 +164,38 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
-      <Card className="crisis-settings-card" title="紧急求助">
-        <p style={{ marginTop: 0 }}>
-          中国大陆急救与心理援助热线（无需登录亦可打开）。若处于立即危险，请优先拨打 120 / 110。
-        </p>
+      <Card className="crisis-settings-card" title={tr('crisis.title')}>
+        <p style={{ marginTop: 0 }}>{tr('settings.crisis.blurb')}</p>
         <Button
           variant="danger"
           block
           onClick={() => navigate('/help/crisis')}
         >
-          打开紧急求助页
+          {tr('settings.crisis.open')}
+        </Button>
+      </Card>
+
+      <Card title={tr('settings.locale.title')}>
+        <p style={{ margin: '0 0 8px' }}>
+          {tr('settings.locale.region')}：<strong>{regionDisplayName(region)}</strong>
+        </p>
+        <Button
+          block
+          variant="ghost"
+          onClick={() => navigate('/onboarding/region?from=settings')}
+        >
+          {tr('settings.locale.changeRegion')}
+        </Button>
+        <div style={{ height: 12 }} />
+        <p style={{ margin: '0 0 8px' }}>
+          {tr('settings.locale.language')}：<strong>{LANGUAGE_LABELS[language]}</strong>
+        </p>
+        <Button
+          block
+          variant="ghost"
+          onClick={() => navigate('/onboarding/language?from=settings')}
+        >
+          {tr('settings.locale.changeLanguage')}
         </Button>
       </Card>
 

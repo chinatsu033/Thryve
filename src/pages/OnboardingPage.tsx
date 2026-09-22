@@ -1,6 +1,9 @@
 import { Navigate } from 'react-router-dom'
+import { useLocale } from '../context/LocaleContext'
 
-/** Onboarding skipped in cloud MVP — profiles are created on signup. */
+/** Legacy /onboarding → region or home depending on setup. */
 export function OnboardingPage() {
-  return <Navigate to="/" replace />
+  const { setupDone } = useLocale()
+  if (setupDone) return <Navigate to="/" replace />
+  return <Navigate to="/onboarding/region" replace />
 }

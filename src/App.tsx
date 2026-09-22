@@ -1,12 +1,16 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { MedReminderHost } from './components/MedReminderHost'
 import { useAuth } from './context/AuthContext'
+import { useLocale } from './context/LocaleContext'
 import { AuthPage } from './pages/AuthPage'
 import { CrisisHelpPage } from './pages/CrisisHelpPage'
 import { BodyPage } from './pages/BodyPage'
 import { EmotionPage } from './pages/EmotionPage'
 import { HomePage } from './pages/HomePage'
+import { LanguageSelectPage } from './pages/LanguageSelectPage'
+import { OnboardingPage } from './pages/OnboardingPage'
+import { RegionSelectPage } from './pages/RegionSelectPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import type { ReactNode } from 'react'
@@ -18,6 +22,22 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return children
 }
 
+/** First launch: region → language before auth / app. */
+function RequireLocaleSetup({ children }: { children: ReactNode }) {
+  const { setupDone } = useLocale()
+  const location = useLocation()
+  if (setupDone) return children
+  const path = location.pathname
+  if (
+    path.startsWith('/onboarding') ||
+    path.startsWith('/help/crisis') ||
+    path === '/crisis'
+  ) {
+    return children
+  }
+  return <Navigate to="/onboarding/region" replace />
+}
+
 export default function App() {
   const { ready, profile } = useAuth()
 
@@ -27,57 +47,81 @@ export default function App() {
     <>
       {profile ? <MedReminderHost /> : null}
       <Routes>
-      <Route element={<Layout />}>
-        <Route
-          path="/auth"
-          element={profile ? <Navigate to="/" replace /> : <AuthPage />}
-        />
-        <Route path="/help/crisis" element={<CrisisHelpPage />} />
-        <Route path="/crisis" element={<Navigate to="/help/crisis" replace />} />
-        <Route path="/onboarding" element={<Navigate to="/" replace />} />
-        <Route
-          path="/"
-          element={
-            <RequireAuth>
-              <HomePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/emotion"
-          element={
-            <RequireAuth>
-              <EmotionPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/body"
-          element={
-            <RequireAuth>
-              <BodyPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/summary"
-          element={
-            <RequireAuth>
-              <SummaryPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <RequireAuth>
-              <SettingsPage />
-            </RequireAuth>
-          }
-        />
-        <Route path="*" element={<Navigate to={profile ? '/' : '/auth'} replace />} />
-      </Route>
-    </Routes>
+        <Route element={<Layout />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/onboarding/region" element={<RegionSelectPage />} />
+          <Route path="/onboarding/language" element={<LanguageSelectPage />} />
+          <Route path="/help/crisis" element={<CrisisHelpPage />} />
+          <Route path="/crisis" element={<Navigate to="/help/crisis" replace />} />
+
+          <Route
+            path="/auth"
+            element={
+              <RequireLocaleSetup>
+                {profile ? <Navigate to="/" replace /> : <AuthPage />}
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <HomePage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/emotion"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <EmotionPage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/body"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <BodyPage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/summary"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <SummaryPage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <SettingsPage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <RequireLocaleSetup>
+                <Navigate to={profile ? '/' : '/auth'} replace />
+              </RequireLocaleSetup>
+            }
+          />
+        </Route>
+      </Routes>
     </>
   )
 }
