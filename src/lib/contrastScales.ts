@@ -25,7 +25,7 @@ export interface ContrastScaleDef {
 }
 
 export const CONTRAST_SCALE_IDS: ContrastScaleId[] = [
-  'phq9', 'gad7', 'phq2', 'gad2', 'phq15', 'who5', 'dass21', 'ais',
+  'phq9', 'gad7', 'phq2', 'phq15', 'who5', 'dass21', 'ais',
 ]
 
 export const CONTRAST_SCALES: Record<ContrastScaleId, ContrastScaleDef> = {
@@ -359,85 +359,6 @@ export const CONTRAST_SCALES: Record<ContrastScaleId, ContrastScaleDef> = {
     'zh-Hant-TW': '感到心情低落、沮喪或絕望',
     'ja': '気分が落ち込んでいる、憂うつ、または絶望的だと感じる',
     'ko': '기분이 가라앉거나, 우울하거나, 희망이 없다고 느낌',
-  } },
-],
-  },
-  gad2: {
-    id: 'gad2',
-    name: {
-      'zh-Hans': 'GAD-2',
-      'en': 'GAD-2',
-      'zh-Hant-HK': 'GAD-2',
-      'zh-Hant-TW': 'GAD-2',
-      'ja': 'GAD-2',
-      'ko': 'GAD-2',
-    },
-    short: {
-      'zh-Hans': '焦虑超短版（2题）',
-      'en': 'Ultra-brief anxiety (2 items)',
-      'zh-Hant-HK': '焦慮超短版（2題）',
-      'zh-Hant-TW': '焦慮超短版（2題）',
-      'ja': '不安超短縮版（2項目）',
-      'ko': '불안 초단축(2문항)',
-    },
-    intro: {
-      'zh-Hans': '在过去两周里，你有多经常被以下问题所困扰？',
-      'en': 'Over the last 2 weeks, how often have you been bothered by the following problems?',
-      'zh-Hant-HK': '在過去兩星期，你有多經常被以下問題所困擾？',
-      'zh-Hant-TW': '在過去兩週裡，你有多常被以下問題所困擾？',
-      'ja': 'この2週間で、次の問題にどのくらい頻繁に悩まされましたか？',
-      'ko': '지난 2주 동안 다음 문제로 얼마나 자주 불편하셨나요?',
-    },
-    options: [
-  { value: 0, label: {
-    'zh-Hans': '完全没有',
-    'en': 'Not at all',
-    'zh-Hant-HK': '完全沒有',
-    'zh-Hant-TW': '完全沒有',
-    'ja': '全くない',
-    'ko': '전혀 없음',
-  } },
-  { value: 1, label: {
-    'zh-Hans': '好几天',
-    'en': 'Several days',
-    'zh-Hant-HK': '好幾天',
-    'zh-Hant-TW': '好幾天',
-    'ja': '数日',
-    'ko': '며칠',
-  } },
-  { value: 2, label: {
-    'zh-Hans': '一半以上天数',
-    'en': 'More than half the days',
-    'zh-Hant-HK': '一半以上日子',
-    'zh-Hant-TW': '一半以上天數',
-    'ja': '半分以上',
-    'ko': '절반 이상',
-  } },
-  { value: 3, label: {
-    'zh-Hans': '几乎每天',
-    'en': 'Nearly every day',
-    'zh-Hant-HK': '幾乎每天',
-    'zh-Hant-TW': '幾乎每天',
-    'ja': 'ほぼ毎日',
-    'ko': '거의 매일',
-  } },
-],
-    items: [
-  { text: {
-    'zh-Hans': '感觉紧张、焦虑或急切',
-    'en': 'Feeling nervous, anxious, or on edge',
-    'zh-Hant-HK': '感覺緊張、焦慮或急切',
-    'zh-Hant-TW': '感覺緊張、焦慮或急切',
-    'ja': '神経質になったり、不安になったり、イライラしたりする',
-    'ko': '긴장되거나, 불안하거나, 초조함',
-  } },
-  { text: {
-    'zh-Hans': '不能够停止或控制担忧',
-    'en': 'Not being able to stop or control worrying',
-    'zh-Hant-HK': '不能夠停止或控制擔憂',
-    'zh-Hant-TW': '不能夠停止或控制擔憂',
-    'ja': '心配することを止められない、またはコントロールできない',
-    'ko': '걱정을 멈추거나 조절할 수 없음',
   } },
 ],
   },
@@ -1456,13 +1377,6 @@ export function scoreContrastScale(
       return { scores: { total }, bands: { total: gad7Band(total) } }
     }
     case 'phq2': {
-      const total = sum(answers)
-      return {
-        scores: { total },
-        bands: { total: total >= 3 ? 'screenPos' : 'screenNeg' },
-      }
-    }
-    case 'gad2': {
       const total = sum(answers)
       return {
         scores: { total },

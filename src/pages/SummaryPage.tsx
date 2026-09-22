@@ -19,12 +19,15 @@ import {
   deleteAttachment,
   getAttachmentBlob,
   listAttachments,
+  listContrastResults,
   listEatings,
   listEmotions,
   listMedications,
   listMedLogs,
   listSleeps,
 } from '../lib/db'
+import { CONTRAST_SCALES } from '../lib/contrastScales'
+import { formatScoresBrief } from '../lib/contrastPdf'
 import { adherenceSummary } from '../lib/meds'
 import { chartEnter } from '../lib/motion'
 import { normalizeMood, moodSoftLabelKey } from '../lib/mood'
@@ -32,6 +35,8 @@ import { normalizeAppetite, appetiteLabelKey } from '../lib/eating'
 import { normalizeSleepQuality, sleepQualityLabelKey } from '../lib/sleep'
 import type {
   AttachmentMeta,
+  ContrastResult,
+  ContrastScaleId,
   EatingEntry,
   EmotionEntry,
   MedLog,
@@ -68,24 +73,27 @@ export function SummaryPage() {
   const [attachments, setAttachments] = useState<AttachmentMeta[]>([])
   const [medications, setMedications] = useState<Medication[]>([])
   const [medLogs, setMedLogs] = useState<MedLog[]>([])
+  const [contrastResults, setContrastResults] = useState<ContrastResult[]>([])
   const [previews, setPreviews] = useState<Record<string, string>>({})
   const [copyOk, setCopyOk] = useState(false)
 
   const reload = useCallback(async () => {
     if (!profile) return
-    const [e, s, ea, a, meds, mlogs] = await Promise.all([
+    const [e, s, ea, a, meds, mlogs, contrast] = await Promise.all([
       listEmotions(profile.id),
       listSleeps(profile.id),
       listEatings(profile.id),
       listAttachments(profile.id),
       listMedications(profile.id),
       listMedLogs(profile.id),
+      listContrastResults(profile.id).catch(() => [] as ContrastResult[]),
     ])
     setEmotions(e)
     setSleeps(s)
     setEatings(ea)
     setMedications(meds)
     setMedLogs(mlogs)
+    setContrastResults(contrast)
     setAttachments(a.sort((x, y) => y.createdAt.localeCompare(x.createdAt)))
     const urls: Record<string, string> = {}
     for (const meta of a) {
@@ -129,6 +137,13 @@ export function SummaryPage() {
   const filteredEatings = useMemo(
     () => eatings.filter((e) => isWithinInterval(parseISO(e.date), interval)),
     [eatings, interval],
+  )
+  const filteredContrast = useMemo(
+    () =>
+      contrastResults.filter((r) =>
+        isWithinInterval(parseISO(r.completedAt), interval),
+      ),
+    [contrastResults, interval],
   )
   const chartData = useMemo(() => {
     const days = eachDayOfInterval(interval)
@@ -256,9 +271,105 @@ export function SummaryPage() {
         lines.push(t('summary.line.noMedPlan'))
       }
     }
+    if (filteredContrast.length) {
+      const byScale = new Map<ContrastScaleId, ContrastResult[]>()
+      for (const r of filteredContrast) {
+        const arr = byScale.get(r.scaleId) ?? []
+        arr.push(r)
+        byScale.set(r.scaleId, arr)
+      }
+      for (const [scaleId, list] of byScale) {
+        const sorted = [...list].sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+        const latest = sorted[0]!
+        const scaleName = CONTRAST_SCALES[scaleId].name[language]
+        const scoreStr = formatScoresBrief(latest)
+        if (sorted.length >= 2) {
+          const prev = sorted[1]!
+          const curTotal = latest.scores.total
+          const prevTotal = prev.scores.total
+          let change = ''
+          if (scaleId === 'dass21') {
+            const d = (latest.scores.depression ?? 0) - (prev.scores.depression ?? 0)
+            const a = (latest.scores.anxiety ?? 0) - (prev.scores.anxiety ?? 0)
+            const s = (latest.scores.stress ?? 0) - (prev.scores.stress ?? 0)
+            const fmt = (n: number) => (n > 0 ? `+${n}` : String(n))
+            change = t('summary.line.contrastChangeDass', {
+              d: fmt(d),
+              a: fmt(a),
+              s: fmt(s),
+            })
+          } else if (curTotal != null && prevTotal != null) {
+            const delta = curTotal - prevTotal
+            change = t('summary.line.contrastChange', {
+              delta: delta > 0 ? `+${delta}` : String(delta),
+            })
+          } else {
+            // fallback: look for prior outside range
+            const priorOutside = contrastResults
+              .filter((r) => r.scaleId === scaleId && r.completedAt < interval.start.toISOString())
+              .sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0]
+            if (priorOutside && latest.scores.total != null && priorOutside.scores.total != null) {
+              const delta = latest.scores.total - priorOutside.scores.total
+              change = t('summary.line.contrastChange', {
+                delta: delta > 0 ? `+${delta}` : String(delta),
+              })
+            }
+          }
+          lines.push(
+            t('summary.line.contrastWithChange', {
+              scale: scaleName,
+              score: scoreStr,
+              change,
+            }),
+          )
+        } else {
+          // single in range — try prior outside range for change
+          const priorOutside = contrastResults
+            .filter((r) => r.scaleId === scaleId && !filteredContrast.includes(r))
+            .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+            .find((r) => r.completedAt < latest.completedAt)
+          if (priorOutside && scaleId !== 'dass21' && latest.scores.total != null && priorOutside.scores.total != null) {
+            const delta = latest.scores.total - priorOutside.scores.total
+            lines.push(
+              t('summary.line.contrastWithChange', {
+                scale: scaleName,
+                score: scoreStr,
+                change: t('summary.line.contrastChange', {
+                  delta: delta > 0 ? `+${delta}` : String(delta),
+                }),
+              }),
+            )
+          } else if (priorOutside && scaleId === 'dass21') {
+            const d = (latest.scores.depression ?? 0) - (priorOutside.scores.depression ?? 0)
+            const a = (latest.scores.anxiety ?? 0) - (priorOutside.scores.anxiety ?? 0)
+            const s = (latest.scores.stress ?? 0) - (priorOutside.scores.stress ?? 0)
+            const fmt = (n: number) => (n > 0 ? `+${n}` : String(n))
+            lines.push(
+              t('summary.line.contrastWithChange', {
+                scale: scaleName,
+                score: scoreStr,
+                change: t('summary.line.contrastChangeDass', {
+                  d: fmt(d),
+                  a: fmt(a),
+                  s: fmt(s),
+                }),
+              }),
+            )
+          } else {
+            lines.push(
+              t('summary.line.contrast', {
+                scale: scaleName,
+                score: scoreStr,
+              }),
+            )
+          }
+        }
+      }
+    }
+
     lines.push(t('summary.line.disclaimer'))
     return lines
-  }, [filteredEmotions, filteredSleeps, filteredEatings, medications, medLogs, interval, profile, t])
+  }, [filteredEmotions, filteredSleeps, filteredEatings, filteredContrast, contrastResults, medications, medLogs, interval, profile, t, language])
 
   const summaryText = useMemo(() => {
     const from = format(interval.start, 'yyyy-MM-dd')
@@ -356,6 +467,26 @@ export function SummaryPage() {
           ))}
         </ul>
       </Card>
+
+      {filteredContrast.length > 0 ? (
+        <Card title={t('summary.contrastCard')}>
+          <div className="list">
+            {filteredContrast
+              .slice()
+              .sort((a, b) => b.completedAt.localeCompare(a.completedAt))
+              .slice(0, 8)
+              .map((r) => (
+                <div key={r.id} className="list-item">
+                  <div>
+                    <strong>{CONTRAST_SCALES[r.scaleId].name[language]}</strong>
+                    <div className="meta">{formatScoresBrief(r)}</div>
+                    <div className="meta hint">{r.completedAt.slice(0, 10)}</div>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </Card>
+      ) : null}
 
       <Card title={t('summary.chart')}>
         {chartData.every((d) => d.mood == null && d.sleep == null && d.appetite == null) ? (

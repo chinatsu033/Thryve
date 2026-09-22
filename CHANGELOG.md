@@ -1,5 +1,18 @@
 # Changelog
 
+## Ver 0.12.1 (preview)
+
+- 对照：去掉 GAD-2；结果改存 Supabase 云端（含本机一次性迁移）
+- 提交后展示与上次对照 + PDF 下载；心迹汇总纳入对照得分
+- GitHub Pages 预览（`/Thryve/`）；非正式 Cloudflare 发版
+
+## Ver 0.12.1 (preview)
+
+- 对照：去掉 GAD-2；结果改存 Supabase 云端（含本机一次性迁移）
+- 提交后展示与上次对照 + PDF 下载；心迹汇总纳入对照得分
+- GitHub Pages 预览（`/Thryve/`）；非正式 Cloudflare 发版
+
+
 ## Ver 0.12 (v0.12.0)
 
 - 新增模块「对照」：PHQ/GAD/WHO-5/DASS-21/AIS 等量表（本机保存；周提醒圆点）

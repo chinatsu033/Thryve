@@ -1,9 +1,18 @@
 import type { ContrastReminderState, ContrastResult, ContrastScaleId } from '../types'
+import {
+  listContrastResults as dbListContrastResults,
+  putContrastResult as dbPutContrastResult,
+} from './db'
 
 const RESULTS_PREFIX = 'thryve.contrast.results.'
 const REMINDER_PREFIX = 'thryve.contrast.reminder.'
+const MIGRATED_PREFIX = 'thryve.contrast.migrated.'
 const MS_DAY = 24 * 60 * 60 * 1000
 const CYCLE_DAYS = 7
+
+const VALID_SCALE_IDS = new Set<string>([
+  'phq9', 'gad7', 'phq2', 'phq15', 'who5', 'dass21', 'ais',
+])
 
 function resultsKey(userId: string): string {
   return `${RESULTS_PREFIX}${userId}`
@@ -11,6 +20,10 @@ function resultsKey(userId: string): string {
 
 function reminderKey(userId: string): string {
   return `${REMINDER_PREFIX}${userId}`
+}
+
+function migratedKey(userId: string): string {
+  return `${MIGRATED_PREFIX}${userId}`
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -23,59 +36,93 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function writeJson(key: string, value: unknown): void {
+function clearLocalContrastKeys(userId: string): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    localStorage.removeItem(resultsKey(userId))
+    localStorage.removeItem(reminderKey(userId))
   } catch {
-    /* quota / private mode */
+    /* private mode */
   }
 }
 
-export function listContrastResults(userId: string): ContrastResult[] {
-  const list = readJson<ContrastResult[]>(resultsKey(userId), [])
+/** One-time: upsert local results to Supabase, then drop local keys. */
+export async function migrateLocalContrastResults(userId: string): Promise<void> {
+  try {
+    if (localStorage.getItem(migratedKey(userId)) === '1') {
+      // Still scrub leftover keys if flag was set mid-failure
+      if (localStorage.getItem(resultsKey(userId)) || localStorage.getItem(reminderKey(userId))) {
+        clearLocalContrastKeys(userId)
+      }
+      return
+    }
+  } catch {
+    /* ignore */
+  }
+
+  const local = readJson<ContrastResult[]>(resultsKey(userId), [])
+  const valid = local.filter(
+    (r) =>
+      r &&
+      typeof r.id === 'string' &&
+      r.profileId === userId &&
+      VALID_SCALE_IDS.has(r.scaleId) &&
+      Array.isArray(r.answers) &&
+      r.scores &&
+      typeof r.completedAt === 'string',
+  )
+
+  for (const r of valid) {
+    await dbPutContrastResult({
+      ...r,
+      profileId: userId,
+      scaleId: r.scaleId as ContrastScaleId,
+    })
+  }
+
+  clearLocalContrastKeys(userId)
+  try {
+    localStorage.setItem(migratedKey(userId), '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export async function listContrastResults(userId: string): Promise<ContrastResult[]> {
+  const list = await dbListContrastResults(userId)
   return list.sort((a, b) => b.completedAt.localeCompare(a.completedAt))
 }
 
-export function listContrastResultsByScale(
+export async function listContrastResultsByScale(
   userId: string,
   scaleId: ContrastScaleId,
-): ContrastResult[] {
-  return listContrastResults(userId).filter((r) => r.scaleId === scaleId)
+): Promise<ContrastResult[]> {
+  const list = await listContrastResults(userId)
+  return list.filter((r) => r.scaleId === scaleId)
 }
 
-export function getLatestContrastResult(
+export async function getLatestContrastResult(
   userId: string,
   scaleId: ContrastScaleId,
-): ContrastResult | null {
-  return listContrastResultsByScale(userId, scaleId)[0] ?? null
+): Promise<ContrastResult | null> {
+  const list = await listContrastResultsByScale(userId, scaleId)
+  return list[0] ?? null
 }
 
-export function saveContrastResult(result: ContrastResult): void {
-  const list = listContrastResults(result.profileId)
-  list.unshift(result)
-  writeJson(resultsKey(result.profileId), list)
+export async function saveContrastResult(result: ContrastResult): Promise<void> {
+  await dbPutContrastResult(result)
+}
 
-  const rem = getContrastReminderState(result.profileId)
-  const now = result.completedAt
-  if (!rem.firstCompletedAt) {
-    rem.firstCompletedAt = now
+export function reminderStateFromResults(results: ContrastResult[]): ContrastReminderState {
+  if (!results.length) {
+    return { firstCompletedAt: null, lastCompletedAt: null }
   }
-  rem.lastCompletedAt = now
-  setContrastReminderState(result.profileId, rem)
-}
-
-export function getContrastReminderState(userId: string): ContrastReminderState {
-  return readJson<ContrastReminderState>(reminderKey(userId), {
-    firstCompletedAt: null,
-    lastCompletedAt: null,
-  })
-}
-
-export function setContrastReminderState(
-  userId: string,
-  state: ContrastReminderState,
-): void {
-  writeJson(reminderKey(userId), state)
+  let first = results[0]!.completedAt
+  let last = results[0]!.completedAt
+  for (const r of results) {
+    if (r.completedAt < first) first = r.completedAt
+    if (r.completedAt > last) last = r.completedAt
+  }
+  return { firstCompletedAt: first, lastCompletedAt: last }
 }
 
 /**
@@ -83,8 +130,11 @@ export function setContrastReminderState(
  * AND the user has not completed any scale since the start of the current 7-day cycle.
  * If never completed, no dot.
  */
-export function isContrastReminderDue(userId: string, now = new Date()): boolean {
-  const { firstCompletedAt, lastCompletedAt } = getContrastReminderState(userId)
+export function isContrastReminderDueFromResults(
+  results: ContrastResult[],
+  now = new Date(),
+): boolean {
+  const { firstCompletedAt, lastCompletedAt } = reminderStateFromResults(results)
   if (!firstCompletedAt) return false
 
   const firstMs = Date.parse(firstCompletedAt)
@@ -105,17 +155,18 @@ export function isContrastReminderDue(userId: string, now = new Date()): boolean
   return lastMs < cycleStartMs
 }
 
-/** Dev / QA helper: backdate firstCompletedAt so the reminder appears. */
-export function debugBackdateContrastFirstCompleted(
+export async function isContrastReminderDue(
   userId: string,
-  daysAgo: number,
+  now = new Date(),
+): Promise<boolean> {
+  const results = await listContrastResults(userId)
+  return isContrastReminderDueFromResults(results, now)
+}
+
+/** @deprecated no-op — reminder is derived from cloud results */
+export function debugBackdateContrastFirstCompleted(
+  _userId: string,
+  _daysAgo: number,
 ): void {
-  const rem = getContrastReminderState(userId)
-  const d = new Date()
-  d.setDate(d.getDate() - daysAgo)
-  rem.firstCompletedAt = d.toISOString()
-  if (!rem.lastCompletedAt) {
-    rem.lastCompletedAt = rem.firstCompletedAt
-  }
-  setContrastReminderState(userId, rem)
+  /* no-op */
 }

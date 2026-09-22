@@ -5,7 +5,7 @@
  */
 import { isLegacyMoodEntry, normalizeMood } from './mood'
 import { requireSupabase } from './supabase'
-import { DEFAULT_THEME, type EatingEntry, type EmotionEntry, type MedLog, type Medication, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
+import { DEFAULT_THEME, type ContrastResult, type ContrastScaleId, type EatingEntry, type EmotionEntry, type MedLog, type Medication, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
 import { getStoredLanguage } from './locale'
 import { translate } from '../locales/messages'
 
@@ -372,6 +372,58 @@ export async function deleteMedLog(id: string): Promise<void> {
   if (error) throw error
 }
 
+
+type ContrastRow = {
+  id: string
+  user_id: string
+  scale_id: string
+  answers: number[] | null
+  scores: Record<string, number> | null
+  completed_at: string
+  created_at: string
+}
+
+function rowToContrast(row: ContrastRow): ContrastResult {
+  return {
+    id: row.id,
+    profileId: row.user_id,
+    scaleId: row.scale_id as ContrastScaleId,
+    answers: row.answers ?? [],
+    scores: (row.scores as Record<string, number>) ?? {},
+    completedAt: row.completed_at,
+  }
+}
+
+export async function listContrastResults(userId: string): Promise<ContrastResult[]> {
+  const sb = requireSupabase()
+  const { data, error } = await sb
+    .from('thryve_contrast_results')
+    .select('*')
+    .eq('user_id', userId)
+    .order('completed_at', { ascending: false })
+  if (error) throw error
+  return (data as ContrastRow[] | null)?.map(rowToContrast) ?? []
+}
+
+export async function putContrastResult(r: ContrastResult): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_contrast_results').upsert({
+    id: r.id,
+    user_id: r.profileId,
+    scale_id: r.scaleId,
+    answers: r.answers,
+    scores: r.scores,
+    completed_at: r.completedAt,
+  })
+  if (error) throw error
+}
+
+export async function deleteContrastResult(id: string): Promise<void> {
+  const sb = requireSupabase()
+  const { error } = await sb.from('thryve_contrast_results').delete().eq('id', id)
+  if (error) throw error
+}
+
 /** Attachments skipped for cloud MVP (no blob storage yet). */
 export async function listAttachments(_userId: string) {
   return [] as import('../types').AttachmentMeta[]
@@ -390,10 +442,11 @@ export async function exportProfile(userId: string, email = ''): Promise<Profile
   const profile = await getProfile(userId, email)
   if (!profile) throw new Error(translate(getStoredLanguage(), 'common.unknownError'))
 
-  const [emotions, sleeps, eatings] = await Promise.all([
+  const [emotions, sleeps, eatings, contrastResults] = await Promise.all([
     listEmotions(userId),
     listSleeps(userId),
     listEatings(userId),
+    listContrastResults(userId),
   ])
 
   return {
@@ -405,6 +458,7 @@ export async function exportProfile(userId: string, email = ''): Promise<Profile
     eatings,
     depressives: [],
     attachments: [],
+    contrastResults,
   }
 }
 
@@ -461,5 +515,6 @@ export async function deleteAllUserData(userId: string): Promise<void> {
     sb.from('thryve_eatings').delete().eq('user_id', userId),
     sb.from('thryve_med_logs').delete().eq('user_id', userId),
     sb.from('thryve_medications').delete().eq('user_id', userId),
+    sb.from('thryve_contrast_results').delete().eq('user_id', userId),
   ])
 }

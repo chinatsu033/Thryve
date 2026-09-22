@@ -139,6 +139,7 @@ export interface ProfileExport {
   eatings: EatingEntry[]
   depressives: DepressiveEntry[]
   attachments: Array<AttachmentMeta & { dataBase64: string }>
+  contrastResults?: ContrastResult[]
 }
 
 /** @deprecated Prefer POSITIVE/NEGATIVE sets in lib/mood — kept for any leftover refs */
@@ -190,12 +191,11 @@ export const CHECKLIST_LABELS: Record<keyof DepressiveChecklist, string> = {
   suicidalThoughts: '消极念头或自伤想法',
 }
 
-/** Contrast module (对照) — self-check scales, localStorage-backed. */
+/** Contrast module (对照) — self-check scales, cloud-backed. */
 export type ContrastScaleId =
   | 'phq9'
   | 'gad7'
   | 'phq2'
-  | 'gad2'
   | 'phq15'
   | 'who5'
   | 'dass21'

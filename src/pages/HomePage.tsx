@@ -15,7 +15,11 @@ import { appetiteLabelKey } from '../lib/eating'
 import { easeOutSoft, layerTransition } from '../lib/motion'
 import { sleepQualityLabelKey } from '../lib/sleep'
 import type { EatingEntry, EmotionEntry, SleepEntry } from '../types'
-import { isContrastReminderDue } from '../lib/contrastStore'
+import {
+  isContrastReminderDueFromResults,
+  listContrastResults,
+  migrateLocalContrastResults,
+} from '../lib/contrastStore'
 import { useLocale } from '../context/LocaleContext'
 
 type Layer = 'landing' | 'dashboard'
@@ -149,6 +153,7 @@ export function HomePage() {
   const pendingCloseRef = useRef(false)
   /** When 微光日历 expanded / med modal open — block swipe-back to landing. */
   const [medGestureLock, setMedGestureLock] = useState(false)
+  const [contrastDue, setContrastDue] = useState(false)
 
   useEffect(() => {
     const next = layerFromLocation(location.search, location.state)
@@ -158,14 +163,21 @@ export function HomePage() {
   useEffect(() => {
     if (!profile) return
     void (async () => {
-      const [e, s, ea] = await Promise.all([
+      try {
+        await migrateLocalContrastResults(profile.id)
+      } catch {
+        /* migration best-effort */
+      }
+      const [e, s, ea, contrast] = await Promise.all([
         listEmotions(profile.id),
         listSleeps(profile.id),
         listEatings(profile.id),
+        listContrastResults(profile.id).catch(() => []),
       ])
       setEmotions(e.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt)))
       setSleeps(s.sort((a, b) => b.date.localeCompare(a.date)))
       setEatings(ea.sort((a, b) => b.date.localeCompare(a.date)))
+      setContrastDue(isContrastReminderDueFromResults(contrast))
     })()
   }, [profile])
 
@@ -444,7 +456,7 @@ export function HomePage() {
             </nav>
 
             <Link to="/contrast" className="home-contrast-link">
-              {isContrastReminderDue(profile.id) ? (
+              {contrastDue ? (
                 <span className="home-contrast-dot" aria-hidden />
               ) : null}
               <Button block variant="ghost" className="home-contrast-btn">
