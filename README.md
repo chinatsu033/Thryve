@@ -8,7 +8,7 @@ https://thryve.chinatsu033.org
 
 ## 功能概览
 
-- **邮箱注册 / 登录**：Supabase Auth（email + password），会话持久化
+- **邮箱注册 / 登录**：Supabase Auth（email + password），注册需 Cloudflare Turnstile；会话持久化
 - **云端同步**：情绪 / 睡眠 / 饮食按 `auth.uid()` 隔离（RLS）
 - **情绪**：当下感受，评分、标签、来源、备注
 - **身心**：睡眠与轻量饮食打卡
@@ -40,9 +40,21 @@ https://thryve.chinatsu033.org
 ```bash
 VITE_SUPABASE_URL=https://srhoswkgjxqmasmaqjfg.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_TURNSTILE_SITE_KEY=your-turnstile-site-key
 ```
 
-Cloudflare Pages：在项目 Settings → Environment variables 中配置同名变量。
+Cloudflare Pages → Settings → Environment variables：
+
+| Variable | Scope | Notes |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Build + Functions | Public Supabase URL |
+| `VITE_SUPABASE_ANON_KEY` | Build | Public anon key only |
+| `VITE_TURNSTILE_SITE_KEY` | Build | Turnstile site key (widget) |
+| `TURNSTILE_SECRET_KEY` | Functions (Production/Preview) | Turnstile secret — never `VITE_` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Functions only | Admin create-user — never expose to client |
+| `SUPABASE_URL` | Functions (optional) | If unset, Function falls back to `VITE_SUPABASE_URL` |
+
+注册走 Pages Function `POST /api/register`（Turnstile 校验 + Admin API 建用户），客户端不再调用 `supabase.auth.signUp`。就绪后请在 Supabase Dashboard → Authentication → Providers/Settings **关闭公开注册（open signups）**，防止绕过 widget 直连 anon signUp。
 
 ## Supabase 配置（部署前必做）
 
@@ -79,7 +91,7 @@ npm run preview
 ## 部署到 Cloudflare Pages
 
 1. 连接仓库 `chinatsu033/Thryve`，构建命令 `npm run build`，输出目录 `dist`。
-2. 设置环境变量 `VITE_SUPABASE_URL`、`VITE_SUPABASE_ANON_KEY`。
+2. 设置环境变量（见上表）：至少 `VITE_SUPABASE_*`、`VITE_TURNSTILE_SITE_KEY`，以及 Function 密钥 `TURNSTILE_SECRET_KEY`、`SUPABASE_SERVICE_ROLE_KEY`。
 3. 自定义域：`thryve.chinatsu033.org`（根路径，`base: '/'`）。
 4. SPA 回退：将所有路由指向 `index.html`。
 
@@ -92,8 +104,10 @@ npm run preview
 ## 目录
 
 ```
+functions/
+  api/          # Pages Functions（如 register + Turnstile）
 src/
-  components/   # UI、流程表单
+  components/   # UI、流程表单、Turnstile
   context/      # Auth + 主题
   lib/          # supabase、云端 CRUD、theme
   pages/        # 各功能页

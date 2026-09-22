@@ -230,6 +230,11 @@ p {
   margin: 8px 0;
 }
 
+.turnstile-wrap {
+  margin-top: 4px;
+  min-height: 65px;
+}
+
 .disclaimer {
   background: rgba(var(--color-primary-rgb), 0.08);
   border-radius: var(--radius-md);

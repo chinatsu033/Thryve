@@ -1,16 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
 import { LANGUAGE_LABELS } from '../lib/locale'
 import { deleteAllUserData, exportProfile, importIntoCurrentUser } from '../lib/db'
-import {
-  createInviteCode,
-  listMyInviteCodes,
-  setInviteCodeEnabled,
-  type InviteCodeRow,
-} from '../lib/invite'
 import {
   currentNotificationPermission,
   requestNotificationPermission,
@@ -32,24 +26,7 @@ export function SettingsPage() {
   const [msg, setMsg] = useState('')
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
-  const [inviteCodes, setInviteCodes] = useState<InviteCodeRow[]>([])
-  const [inviteBusy, setInviteBusy] = useState(false)
   const [notifPerm, setNotifPerm] = useState(() => currentNotificationPermission())
-
-  const refreshInviteCodes = useCallback(async () => {
-    if (!profile) return
-    try {
-      const rows = await listMyInviteCodes(profile.id)
-      setInviteCodes(rows)
-    } catch (e) {
-      console.error(e)
-      setMsg(t('settings.msg.inviteLoadFail', { error: e instanceof Error ? e.message : t('common.unknownError') }))
-    }
-  }, [profile])
-
-  useEffect(() => {
-    if (profile) void refreshInviteCodes()
-  }, [profile, refreshInviteCodes])
 
   if (!profile) return null
 
@@ -118,34 +95,6 @@ export function SettingsPage() {
     setMsg(t('settings.msg.cleared'))
   }
 
-  const doGenerateInvite = async () => {
-    setInviteBusy(true)
-    try {
-      const row = await createInviteCode({ userId: profile.id, maxUses: 10 })
-      setInviteCodes((prev) => [row, ...prev])
-      setMsg(t('settings.msg.inviteCreated', { code: row.code }))
-    } catch (e) {
-      setMsg(t('settings.msg.inviteFail', { error: e instanceof Error ? e.message : t('common.unknownError') }))
-    } finally {
-      setInviteBusy(false)
-    }
-  }
-
-  const doToggleInvite = async (row: InviteCodeRow) => {
-    setInviteBusy(true)
-    try {
-      const next = !row.enabled
-      await setInviteCodeEnabled(row.id, next)
-      setInviteCodes((prev) => prev.map((r) => (r.id === row.id ? { ...r, enabled: next } : r)))
-      setMsg(next ? t('settings.msg.inviteEnabled', { code: row.code }) : t('settings.msg.inviteDisabled', { code: row.code }))
-    } catch (e) {
-      setMsg(t('settings.msg.updateFail', { error: e instanceof Error ? e.message : t('common.unknownError') }))
-    } finally {
-      setInviteBusy(false)
-    }
-  }
-
-
   const doRequestNotif = async () => {
     const p = await requestNotificationPermission()
     setNotifPerm(p)
@@ -153,11 +102,6 @@ export function SettingsPage() {
     else if (p === 'denied') setMsg(t('settings.msg.notifDenied'))
     else if (p === 'unsupported') setMsg(t('settings.msg.notifUnsupported'))
     else setMsg(t('settings.msg.notifDefault'))
-  }
-
-  const formatUses = (row: InviteCodeRow) => {
-    const max = row.max_uses == null ? '∞' : String(row.max_uses)
-    return `${row.use_count} / ${max}`
   }
 
   return (
@@ -303,38 +247,6 @@ export function SettingsPage() {
           </strong>
         </p>
         <Button onClick={() => void doRequestNotif()}>{t('settings.notif.request')}</Button>
-      </Card>
-
-      <Card title={t('settings.invite')}>
-        <p className="hint">{t('settings.invite.hint')}</p>
-        <Button disabled={inviteBusy} onClick={() => void doGenerateInvite()}>
-          {inviteBusy ? t('common.processing') : t('settings.invite.generate')}
-        </Button>
-        <div style={{ height: 12 }} />
-        {inviteCodes.length === 0 ? (
-          <p className="hint" style={{ margin: 0 }}>
-            {t('settings.invite.empty')}
-          </p>
-        ) : (
-          <ul className="summary-bullets" style={{ margin: 0 }}>
-            {inviteCodes.map((row) => (
-              <li key={row.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                <strong style={{ fontFamily: 'ui-monospace, monospace', letterSpacing: '0.04em' }}>
-                  {row.code}
-                </strong>
-                <span className="hint">{t('settings.invite.uses', { uses: formatUses(row) })}</span>
-                <span className="hint">{row.enabled ? t('common.enabled') : t('common.disabled')}</span>
-                <Button
-                  variant="ghost"
-                  disabled={inviteBusy}
-                  onClick={() => void doToggleInvite(row)}
-                >
-                  {row.enabled ? t('common.disable') : t('common.enable')}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
       </Card>
 
       <Card title={t('settings.account')}>

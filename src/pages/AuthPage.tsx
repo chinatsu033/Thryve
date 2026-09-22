@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
+import { Turnstile } from '../components/Turnstile'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 import { useLocale } from '../context/LocaleContext'
+
+const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined)?.trim() || ''
 
 export function AuthPage() {
   const { t } = useLocale()
@@ -11,7 +14,8 @@ export function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
-  const [inviteCode, setInviteCode] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const [turnstileReset, setTurnstileReset] = useState(0)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
@@ -21,22 +25,39 @@ export function AuthPage() {
     return <Navigate to="/" replace />
   }
 
+  const switchMode = (next: 'login' | 'register') => {
+    setMode(next)
+    setError('')
+    setInfo('')
+    setTurnstileToken(null)
+    if (next === 'register') setTurnstileReset((n) => n + 1)
+  }
+
   const submit = async () => {
     setError('')
     setInfo('')
     setBusy(true)
     try {
-      const res =
-        mode === 'login'
-          ? await login(email, password)
-          : await register(email, password, displayName, inviteCode)
+      if (mode === 'login') {
+        const res = await login(email, password)
+        if (!res.ok) setError(res.error)
+        return
+      }
+
+      if (!TURNSTILE_SITE_KEY) {
+        setError(t('auth.err.registerFailed'))
+        return
+      }
+      if (!turnstileToken) {
+        setError(t('auth.turnstile.required'))
+        return
+      }
+
+      const res = await register(email, password, displayName, turnstileToken)
       if (!res.ok) {
-        // Registration may succeed pending email confirm — show as info if message hints
-        if (res.error === t('auth.registerOk')) {
-          setInfo(res.error)
-        } else {
-          setError(res.error)
-        }
+        setError(res.error)
+        setTurnstileToken(null)
+        setTurnstileReset((n) => n + 1)
       }
     } finally {
       setBusy(false)
@@ -58,39 +79,28 @@ export function AuthPage() {
           <button
             type="button"
             className={`chip ${mode === 'login' ? 'active' : ''}`}
-            onClick={() => setMode('login')}
+            onClick={() => switchMode('login')}
           >
             {t('auth.login')}
           </button>
           <button
             type="button"
             className={`chip ${mode === 'register' ? 'active' : ''}`}
-            onClick={() => setMode('register')}
+            onClick={() => switchMode('register')}
           >
             {t('auth.register')}
           </button>
         </div>
 
         {mode === 'register' ? (
-          <>
-            <Field label={t('auth.displayName')} hint={t('auth.displayName.hint')}>
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                autoComplete="nickname"
-                placeholder={t('auth.displayName.ph')}
-              />
-            </Field>
-            <Field label={t('auth.invite')} hint={t('auth.invite.hint')}>
-              <input
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                autoComplete="off"
-                placeholder={t('auth.invite.ph')}
-                spellCheck={false}
-              />
-            </Field>
-          </>
+          <Field label={t('auth.displayName')} hint={t('auth.displayName.hint')}>
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              autoComplete="nickname"
+              placeholder={t('auth.displayName.ph')}
+            />
+          </Field>
         ) : null}
 
         <Field label={t('auth.email')}>
@@ -115,6 +125,23 @@ export function AuthPage() {
             }}
           />
         </Field>
+
+        {mode === 'register' ? (
+          <Field label={t('auth.turnstile')}>
+            {TURNSTILE_SITE_KEY ? (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY}
+                resetKey={turnstileReset}
+                onToken={setTurnstileToken}
+                onExpire={() => setTurnstileToken(null)}
+              />
+            ) : (
+              <p className="error-text" style={{ margin: 0 }}>
+                {t('auth.err.registerFailed')}
+              </p>
+            )}
+          </Field>
+        ) : null}
 
         {error ? <p className="error-text">{error}</p> : null}
         {info ? <p className="hint">{info}</p> : null}

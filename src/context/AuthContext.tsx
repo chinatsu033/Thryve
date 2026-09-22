@@ -9,7 +9,6 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { ensureProfile, saveProfile } from '../lib/db'
-import { consumeInviteCode } from '../lib/invite'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { applyTheme } from '../lib/theme'
 import { DEFAULT_THEME, type Profile, type ThemeConfig } from '../types'
@@ -26,7 +25,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     displayName?: string,
-    inviteCode?: string,
+    turnstileToken?: string,
   ) => Promise<{ ok: true } | { ok: false; error: string }>
   login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>
   logout: () => Promise<void>
@@ -110,24 +109,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadProfileForUser])
 
   const register = useCallback(
-    async (email: string, password: string, displayName?: string, inviteCode?: string) => {
+    async (email: string, password: string, displayName?: string, turnstileToken?: string) => {
       if (!isSupabaseConfigured) {
         return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.noCloud') }
       }
       const trimmed = email.trim()
       if (!trimmed.includes('@')) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.badEmail') }
       if (password.length < 6) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.shortPassword') }
+      if (!turnstileToken) {
+        return { ok: false as const, error: translate(getStoredLanguage(), 'auth.turnstile.required') }
+      }
 
-      // Consume invite FIRST, then signUp. If signUp fails after consume, use is not
-      // refunded (MVP leak). Prefer same-transaction consume+signup later if needed.
-      const consumed = await consumeInviteCode(inviteCode ?? '')
-      if (!consumed.ok) return { ok: false as const, error: consumed.error }
+      const name =
+        displayName?.trim() || trimmed.split('@')[0] || translate(getStoredLanguage(), 'auth.defaultUser')
 
-      const name = displayName?.trim() || trimmed.split('@')[0] || translate(getStoredLanguage(), 'auth.defaultUser')
-      const { data, error } = await supabase.auth.signUp({
+      // Server path: Turnstile verify + Admin createUser (no client anon signUp).
+      // When ready, disable open signups in Supabase Dashboard → Authentication.
+      let apiRes: Response
+      try {
+        apiRes = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: trimmed,
+            password,
+            displayName: name,
+            turnstileToken,
+          }),
+        })
+      } catch {
+        return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.network') }
+      }
+
+      let apiJson: { ok?: boolean; error?: string } = {}
+      try {
+        apiJson = (await apiRes.json()) as { ok?: boolean; error?: string }
+      } catch {
+        /* ignore parse errors */
+      }
+
+      if (!apiRes.ok || !apiJson.ok) {
+        if (apiRes.status === 409 || apiJson.error === 'already_registered') {
+          return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.alreadyRegistered') }
+        }
+        if (apiJson.error === 'turnstile') {
+          return { ok: false as const, error: translate(getStoredLanguage(), 'auth.turnstile.failed') }
+        }
+        return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.registerFailed') }
+      }
+
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmed,
         password,
-        options: { data: { display_name: name } },
       })
       if (error) return { ok: false as const, error: mapAuthError(error.message) }
 
@@ -136,14 +169,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await ensureProfile(data.user.id, trimmed, name)
         } catch (e) {
           console.error(e)
-        }
-      }
-
-      // If email confirmation is required, session may be null
-      if (!data.session) {
-        return {
-          ok: false as const,
-          error: translate(getStoredLanguage(), 'auth.registerOk'),
         }
       }
 
