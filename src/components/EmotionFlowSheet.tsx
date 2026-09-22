@@ -36,6 +36,16 @@ export function EmotionFlowSheet({
   presentation = 'sheet',
 }: Props) {
   const { t } = useLocale()
+  const tagLabel = (w: string) => {
+    const k = `tag.${w}`
+    const tr = t(k)
+    return tr === k ? w : tr
+  }
+  const srcLabel = (w: string) => {
+    const k = `src.${w}`
+    const tr = t(k)
+    return tr === k ? w : tr
+  }
   const [step, setStep] = useState<Step>('mood')
   const [mood, setMood] = useState(initialMood)
   const [tags, setTags] = useState<string[]>([])
@@ -136,12 +146,12 @@ export function EmotionFlowSheet({
                   className="lake-range"
                 />
                 <div className="lake-slider-labels">
-                  <span>低谷</span>
-                  <span>盛放</span>
+                  <span>{t('mood.low')}</span>
+                  <span>{t('mood.high')}</span>
                 </div>
               </div>
               <Button block onClick={() => setStep('words')}>
-                确定
+                {t('common.confirm')}
               </Button>
             </div>
           </motion.div>
@@ -149,29 +159,29 @@ export function EmotionFlowSheet({
 
         {step === 'words' ? (
           <motion.div key="words" className="flow-body" {...stepFade}>
-            <h2 className="flow-title">用词语形容</h2>
-            <p className="flow-sub">可多选，也可写下自己的词。</p>
+            <h2 className="flow-title">{t('emotion.flow.wordsTitle')}</h2>
+            <p className="flow-sub">{t('emotion.flow.wordsSub')}</p>
             <div className="tag-grid" style={{ marginBottom: 14 }}>
-              {wordChoices.map((t) => (
+              {wordChoices.map((word) => (
                 <button
-                  key={t}
+                  key={word}
                   type="button"
-                  className={`tag ${tags.includes(t) ? 'active' : ''}`}
-                  onClick={() => toggle(tags, setTags, t)}
+                  className={`tag ${tags.includes(word) ? 'active' : ''}`}
+                  onClick={() => toggle(tags, setTags, word)}
                 >
-                  {t}
+                  {tagLabel(word)}
                 </button>
               ))}
               {tags
-                .filter((t) => !wordChoices.includes(t))
-                .map((t) => (
+                .filter((word) => !wordChoices.includes(word))
+                .map((word) => (
                   <button
-                    key={t}
+                    key={word}
                     type="button"
                     className="tag active"
-                    onClick={() => toggle(tags, setTags, t)}
+                    onClick={() => toggle(tags, setTags, word)}
                   >
-                    {t}
+                    {tagLabel(word)}
                   </button>
                 ))}
             </div>
@@ -190,44 +200,44 @@ export function EmotionFlowSheet({
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 <Button variant="ghost" className="btn-sm" onClick={addCustomWord}>
-                  添加
+                  {t('common.add')}
                 </Button>
               </div>
             </Field>
             <div className="row">
               <Button variant="ghost" onClick={() => setStep('mood')}>
-                上一步
+                {t('common.prev')}
               </Button>
-              <Button onClick={() => setStep('source')}>继续</Button>
+              <Button onClick={() => setStep('source')}>{t('common.continue')}</Button>
             </div>
           </motion.div>
         ) : null}
 
         {step === 'source' ? (
           <motion.div key="source" className="flow-body" {...stepFade}>
-            <h2 className="flow-title">它从哪里来</h2>
-            <p className="flow-sub">选择或写下感受的来源。</p>
+            <h2 className="flow-title">{t('emotion.flow.sourceTitle')}</h2>
+            <p className="flow-sub">{t('emotion.flow.sourceSub')}</p>
             <div className="tag-grid" style={{ marginBottom: 14 }}>
-              {EMOTION_SOURCE_WORDS.map((t) => (
+              {EMOTION_SOURCE_WORDS.map((word) => (
                 <button
-                  key={t}
+                  key={word}
                   type="button"
-                  className={`tag ${sources.includes(t) ? 'active' : ''}`}
-                  onClick={() => toggle(sources, setSources, t)}
+                  className={`tag ${sources.includes(word) ? 'active' : ''}`}
+                  onClick={() => toggle(sources, setSources, word)}
                 >
-                  {t}
+                  {srcLabel(word)}
                 </button>
               ))}
               {sources
-                .filter((t) => !(EMOTION_SOURCE_WORDS as readonly string[]).includes(t))
-                .map((t) => (
+                .filter((word) => !(EMOTION_SOURCE_WORDS as readonly string[]).includes(word))
+                .map((word) => (
                   <button
-                    key={t}
+                    key={word}
                     type="button"
                     className="tag active"
-                    onClick={() => toggle(sources, setSources, t)}
+                    onClick={() => toggle(sources, setSources, word)}
                   >
-                    {t}
+                    {srcLabel(word)}
                   </button>
                 ))}
             </div>
@@ -246,7 +256,7 @@ export function EmotionFlowSheet({
                   style={{ flex: 1, minWidth: 0 }}
                 />
                 <Button variant="ghost" className="btn-sm" onClick={addCustomSource}>
-                  添加
+                  {t('common.add')}
                 </Button>
               </div>
             </Field>
@@ -260,7 +270,7 @@ export function EmotionFlowSheet({
             </Field>
             <div className="row">
               <Button variant="ghost" onClick={() => setStep('words')}>
-                上一步
+                {t('common.prev')}
               </Button>
               <Button disabled={busy} onClick={() => void save()}>
                 {busy ? t('common.saving') : t('common.save')}

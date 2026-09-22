@@ -43,6 +43,17 @@ export function EmotionPage() {
     return t(moodSoftLabelKey(m))
   }
 
+  const tagLabel = (w: string) => {
+    const k = `tag.${w}`
+    const tr = t(k)
+    return tr === k ? w : tr
+  }
+  const srcLabel = (w: string) => {
+    const k = `src.${w}`
+    const tr = t(k)
+    return tr === k ? w : tr
+  }
+
   return (
     <Page
       title={t('nav.attune')}
@@ -74,20 +85,20 @@ export function EmotionPage() {
                   </span>
                   {e.tags.length > 0 ? (
                     <div style={{ marginTop: 6 }} className="tag-grid">
-                      {e.tags.map((t) => (
+                      {e.tags.map((tag) => (
                         <span
-                          key={t}
+                          key={tag}
                           className="tag active"
                           style={{ cursor: 'default', padding: '4px 10px' }}
                         >
-                          {t}
+                          {tagLabel(tag)}
                         </span>
                       ))}
                     </div>
                   ) : null}
                   {(e.sources ?? []).length > 0 ? (
                     <div className="hint" style={{ marginTop: 6 }}>
-                      来源：{(e.sources ?? []).join('、')}
+                      {t('emotion.source')}{(e.sources ?? []).map(srcLabel).join(t('list.sep'))}
                     </div>
                   ) : null}
                   {e.notes ? <p style={{ marginTop: 8, marginBottom: 0 }}>{e.notes}</p> : null}
@@ -96,7 +107,7 @@ export function EmotionPage() {
                   </div>
                 </div>
                 <Button variant="ghost" className="btn-sm no-print" onClick={() => void remove(e.id)}>
-                  删除
+                  {t('common.delete')}
                 </Button>
               </motion.div>
             ))}

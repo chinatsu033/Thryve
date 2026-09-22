@@ -16,7 +16,7 @@ export function AuthPage() {
   const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (!ready) return <div className="loading">加载中…</div>
+  if (!ready) return <div className="loading">{t('common.loading')}</div>
   if (profile) {
     return <Navigate to="/" replace />
   }
@@ -32,7 +32,7 @@ export function AuthPage() {
           : await register(email, password, displayName, inviteCode)
       if (!res.ok) {
         // Registration may succeed pending email confirm — show as info if message hints
-        if (res.error.includes('注册成功') || res.error.includes('邮箱验证')) {
+        if (res.error === t('auth.registerOk')) {
           setInfo(res.error)
         } else {
           setError(res.error)
@@ -49,8 +49,7 @@ export function AuthPage() {
       {!configured ? (
         <Card>
           <p className="error-text" style={{ margin: 0 }}>
-            尚未配置云端环境变量（VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY）。部署后请在 Cloudflare
-            Pages 中设置。
+            {t('auth.unconfigured')}
           </p>
         </Card>
       ) : null}
@@ -61,20 +60,20 @@ export function AuthPage() {
             className={`chip ${mode === 'login' ? 'active' : ''}`}
             onClick={() => setMode('login')}
           >
-            登录
+            {t('auth.login')}
           </button>
           <button
             type="button"
             className={`chip ${mode === 'register' ? 'active' : ''}`}
             onClick={() => setMode('register')}
           >
-            注册
+            {t('auth.register')}
           </button>
         </div>
 
         {mode === 'register' ? (
           <>
-            <Field label="显示名称" hint={t('auth.displayName.hint')}>
+            <Field label={t('auth.displayName')} hint={t('auth.displayName.hint')}>
               <input
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
@@ -82,7 +81,7 @@ export function AuthPage() {
                 placeholder={t('auth.displayName.ph')}
               />
             </Field>
-            <Field label="邀请码" hint={t('auth.invite.hint')}>
+            <Field label={t('auth.invite')} hint={t('auth.invite.hint')}>
               <input
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
@@ -94,7 +93,7 @@ export function AuthPage() {
           </>
         ) : null}
 
-        <Field label="邮箱">
+        <Field label={t('auth.email')}>
           <input
             type="email"
             value={email}
@@ -104,13 +103,13 @@ export function AuthPage() {
           />
         </Field>
 
-        <Field label={t('auth.password')} hint={mode === 'register' ? '至少 6 位' : undefined}>
+        <Field label={t('auth.password')} hint={mode === 'register' ? t('auth.password.hint') : undefined}>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            placeholder="至少 6 位"
+            placeholder={t('auth.password.ph')}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void submit()
             }}
@@ -125,10 +124,10 @@ export function AuthPage() {
         </Button>
       </Card>
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>
-        登录后数据同步至云端（按账户隔离）。换设备用同一邮箱即可继续记录。
+        {t('auth.footer')}
       </p>
       <p className="crisis-auth-link">
-        <Link to="/help/crisis">遇到紧急情况？获取心理援助</Link>
+        <Link to="/help/crisis">{t('auth.crisisLink')}</Link>
       </p>
     </Page>
   )

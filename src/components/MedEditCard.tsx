@@ -4,8 +4,9 @@ import { formatHm, parseHm } from '../lib/sleep'
 import { uid } from '../lib/crypto'
 import { putMedication } from '../lib/db'
 import {
-  COMMON_MED_NAMES,
-  FREQUENCY_OPTIONS,
+  COMMON_MED_IDS,
+  COMMON_MED_NAMES_ZH,
+  commonMedNameKey,
   defaultTimesForCount,
   normalizeReminderTime,
 } from '../lib/meds'
@@ -133,7 +134,10 @@ export function MedEditCard({
   }, [open, target])
 
   const timesCount = Math.min(MAX_DOSES, Math.max(1, form.reminderTimes.length || 1))
-  const isCommon = (COMMON_MED_NAMES as readonly string[]).includes(form.name)
+  const commonNames = COMMON_MED_IDS.map((id) => tr(commonMedNameKey(id)))
+  const isCommon =
+    commonNames.includes(form.name) ||
+    (COMMON_MED_NAMES_ZH as readonly string[]).includes(form.name)
 
   const setTimesCount = (n: number) => {
     setForm((f) => ({ ...f, reminderTimes: resizeTimes(f.reminderTimes, n) }))
@@ -221,7 +225,7 @@ export function MedEditCard({
   }
 
   const title = target === 'new' || !target ? tr('med.edit.add') : tr('med.edit.edit')
-  const scheduleSummary = `${form.freqLabel} · ${timesCount}次`
+  const scheduleSummary = tr('med.edit.scheduleSummary', { freq: form.freqLabel, n: String(timesCount) })
 
   return (
     <Modal open={open} onClose={onClose} title={title}>
@@ -234,9 +238,11 @@ export function MedEditCard({
 
         <Field label={tr('med.edit.common')} hint={tr('med.edit.commonHint')}>
           <div className="med-common-grid">
-            {COMMON_MED_NAMES.map((n) => (
+            {COMMON_MED_IDS.map((id) => {
+              const n = tr(commonMedNameKey(id))
+              return (
               <button
-                key={n}
+                key={id}
                 type="button"
                 className={`chip med-common-chip ${form.name === n ? 'active' : ''}`}
                 onClick={() => {
@@ -246,7 +252,8 @@ export function MedEditCard({
               >
                 {n}
               </button>
-            ))}
+              )
+            })}
           </div>
         </Field>
 
@@ -285,41 +292,44 @@ export function MedEditCard({
 
             {scheduleOpen ? (
               <div className="med-schedule-popover" role="dialog" aria-label={tr('med.edit.timesAria')}>
-                <p className="med-schedule-popover-title">每天几次</p>
+                <p className="med-schedule-popover-title">{tr('med.edit.timesPerDay')}</p>
                 <div className="med-schedule-wheel-row">
                   <WheelPicker
                     min={1}
                     max={MAX_DOSES}
                     value={timesCount}
                     onChange={setTimesCount}
-                    formatLabel={(v) => `${v}次`}
+                    formatLabel={(v) => tr('med.edit.timesCount', { n: String(v) })}
                     aria-label={tr('med.edit.timesPerDay')}
                   />
                 </div>
                 <p className="med-schedule-popover-title" style={{ marginTop: 10 }}>
-                  间隔
+                  {tr('med.edit.interval')}
                 </p>
                 <div className="med-freq-row med-freq-row--popover">
-                  {FREQUENCY_OPTIONS.map((o) => (
+                  {[1, 2, 3, 4, 5, 6, 7].map((intervalDays) => {
+                    const label = labelForInterval(intervalDays)
+                    return (
                     <button
-                      key={o.label}
+                      key={intervalDays}
                       type="button"
-                      className={`chip ${form.freqLabel === o.label ? 'active' : ''}`}
+                      className={`chip ${form.freqLabel === label ? 'active' : ''}`}
                       onClick={() =>
                         setForm({
                           ...form,
-                          intervalDays: o.intervalDays,
-                          freqLabel: o.label,
+                          intervalDays,
+                          freqLabel: label,
                         })
                       }
                     >
-                      {o.label}
+                      {label}
                     </button>
-                  ))}
+                    )
+                  })}
                 </div>
                 <div className="med-schedule-popover-actions">
                   <Button className="btn-sm" onClick={() => setScheduleOpen(false)}>
-                    完成
+                    {tr('med.edit.done')}
                   </Button>
                 </div>
               </div>
@@ -331,12 +341,12 @@ export function MedEditCard({
           <div className="med-times med-times--scroll">
             {form.reminderTimes.map((t, i) => (
               <div key={i} className="med-time-row">
-                <span className="hint med-time-label">第{i + 1}次</span>
+                <span className="hint med-time-label">{tr('med.edit.nthTime', { n: String(i + 1) })}</span>
                 <button
                   type="button"
                   className={`chip med-time-chip${pickingIndex === i ? ' active' : ''}`}
                   onClick={() => openTimePicker(i)}
-                  aria-label={`第${i + 1}次提醒时间 ${t || tr('common.unset')}`}
+                  aria-label={tr('med.edit.reminderN', { n: String(i + 1), time: t || tr('common.unset') })}
                 >
                   {normalizeReminderTime(t) || t || tr('common.selectTime')}
                 </button>
@@ -352,7 +362,7 @@ export function MedEditCard({
               hour={pickH}
               minute={pickM}
               mode={clockMode}
-              chip={`第${pickingIndex + 1}次`}
+              chip={tr('med.edit.nthTime', { n: String(pickingIndex + 1) })}
               onHourChange={setPickH}
               onMinuteChange={setPickM}
               onHourCommit={() => setClockMode('minute')}
@@ -360,13 +370,13 @@ export function MedEditCard({
             />
             <div className="med-clock-actions">
               <Button variant="ghost" className="btn-sm" onClick={() => setClockMode('hour')}>
-                重选小时
+                {tr('med.edit.reselectHour')}
               </Button>
               <Button className="btn-sm" onClick={commitPickedTime}>
-                完成
+                {tr('med.edit.done')}
               </Button>
               <Button variant="ghost" className="btn-sm" onClick={() => setPickingIndex(null)}>
-                取消
+                {tr('common.cancel')}
               </Button>
             </div>
           </div>
@@ -378,7 +388,7 @@ export function MedEditCard({
             checked={form.enabled}
             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
           />
-          启用提醒与日历计划
+          {tr('med.enablePlan')}
         </label>
 
         <div className="med-edit-actions">
@@ -386,7 +396,7 @@ export function MedEditCard({
             {busy ? tr('common.saving') : tr('common.save')}
           </Button>
           <Button variant="ghost" onClick={onClose}>
-            取消
+            {tr('common.cancel')}
           </Button>
         </div>
       </div>

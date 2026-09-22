@@ -1,3 +1,5 @@
+import { getStoredLanguage } from './locale'
+import { translate } from '../locales/messages'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
@@ -20,7 +22,7 @@ export const supabase: SupabaseClient = createClient(
 
 export function requireSupabase(): SupabaseClient {
   if (!isSupabaseConfigured) {
-    throw new Error('未配置 Supabase：请设置 VITE_SUPABASE_URL 与 VITE_SUPABASE_ANON_KEY')
+    throw new Error(translate(getStoredLanguage(), 'auth.err.noCloud'))
   }
   return supabase
 }

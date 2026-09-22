@@ -148,8 +148,33 @@ export function setLocaleSetupDone(done: boolean): void {
   }
 }
 
+export function regionLabelKey(region: RegionId): `region.${RegionId}` {
+  return `region.${region}`
+}
+
 export function regionLabel(region: RegionId, language: LanguageId): string {
   if (language === 'en') return REGION_LABELS_EN[region]
+  if (language === 'ja') {
+    const ja: Record<RegionId, string> = {
+      hk: '香港', mo: 'マカオ', cn: '中国大陸', jp: '日本', kr: '韓国',
+      gb: 'イギリス', us: 'アメリカ', sg: 'シンガポール', my: 'マレーシア', tw: '台湾地区',
+    }
+    return ja[region]
+  }
+  if (language === 'ko') {
+    const ko: Record<RegionId, string> = {
+      hk: '홍콩', mo: '마카오', cn: '중국 대륙', jp: '일본', kr: '한국',
+      gb: '영국', us: '미국', sg: '싱가포르', my: '말레이시아', tw: '대만 지역',
+    }
+    return ko[region]
+  }
+  if (language === 'zh-Hant-HK' || language === 'zh-Hant-TW') {
+    const hant: Record<RegionId, string> = {
+      hk: '香港', mo: '澳門', cn: '中國大陸', jp: '日本', kr: '南韓',
+      gb: '英國', us: '美國', sg: '新加坡', my: '馬來西亞', tw: '台灣地區',
+    }
+    return hant[region]
+  }
   return REGION_LABELS[region]
 }
 

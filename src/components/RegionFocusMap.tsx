@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { WORLD_LAND_PATH } from '../assets/worldLandPath'
-import { REGION_LABELS, REGION_MAP_FOCUS, type RegionId } from '../lib/locale'
+import { REGION_MAP_FOCUS, type RegionId } from '../lib/locale'
+import { useLocale } from '../context/LocaleContext'
 
 /** Equirectangular projection into a 1000×500 world viewBox (matches Natural Earth land asset). */
 function project(lat: number, lng: number) {
@@ -9,20 +10,18 @@ function project(lat: number, lng: number) {
   return { x, y }
 }
 
-const MARKERS: { id: RegionId; label: string }[] = (
-  [
-    'hk',
-    'mo',
-    'cn',
-    'tw',
-    'jp',
-    'kr',
-    'sg',
-    'my',
-    'gb',
-    'us',
-  ] as RegionId[]
-).map((id) => ({ id, label: REGION_LABELS[id] }))
+const MARKER_IDS: RegionId[] = [
+  'hk',
+  'mo',
+  'cn',
+  'tw',
+  'jp',
+  'kr',
+  'sg',
+  'my',
+  'gb',
+  'us',
+]
 
 type Props = {
   region: RegionId
@@ -32,9 +31,11 @@ type Props = {
 /**
  * Outlined world land map (Natural Earth 110m coastlines, public domain).
  * Soft wellness fill + stroke contours; pans/zooms to the selected region marker.
- * No flags; Taiwan marker uses 「台湾地区」 via REGION_LABELS.
+ * No flags; Taiwan marker uses region.tw i18n label.
  */
 export function RegionFocusMap({ region, className = '' }: Props) {
+  const { t } = useLocale()
+  const markers = MARKER_IDS.map((id) => ({ id, label: t(`region.${id}`) }))
   const focus = REGION_MAP_FOCUS[region]
   const { x, y } = project(focus.lat, focus.lng)
   const scale = focus.zoom
@@ -73,7 +74,7 @@ export function RegionFocusMap({ region, className = '' }: Props) {
             vectorEffect="non-scaling-stroke"
           />
 
-          {MARKERS.map((m) => {
+          {markers.map((m) => {
             const f = REGION_MAP_FOCUS[m.id]
             const p = project(f.lat, f.lng)
             const active = m.id === region

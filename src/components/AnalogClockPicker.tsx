@@ -1,3 +1,4 @@
+import { useLocale } from '../context/LocaleContext'
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 
 type Mode = 'hour' | 'minute'
@@ -84,6 +85,7 @@ export function AnalogClockPicker({
   chip,
   variant = 'overlay',
 }: Props) {
+  const { t } = useLocale()
   const surface = variant === 'surface'
 
   const svgRef = useRef<SVGSVGElement>(null)
@@ -198,7 +200,7 @@ export function AnalogClockPicker({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         role="slider"
-        aria-label={mode === 'hour' ? '选择小时' : '选择分钟'}
+        aria-label={mode === 'hour' ? t('med.clock.hour') : t('med.clock.minute')}
         aria-valuemin={mode === 'hour' ? 0 : 0}
         aria-valuemax={mode === 'hour' ? 23 : 59}
         aria-valuenow={mode === 'hour' ? liveHour : liveMinute}

@@ -1,3 +1,4 @@
+import { useLocale } from '../context/LocaleContext'
 import {
   useCallback,
   useEffect,
@@ -36,8 +37,10 @@ export function WheelPicker({
   visibleCount = 5,
   itemHeight = 40,
   className = '',
-  'aria-label': ariaLabel = '选择',
+  'aria-label': ariaLabelProp,
 }: Props) {
+  const { t } = useLocale()
+  const ariaLabel = ariaLabelProp ?? t('picker.select')
   const span = Math.max(1, max - min + 1)
   const mid = Math.floor(visibleCount / 2)
   const height = itemHeight * visibleCount

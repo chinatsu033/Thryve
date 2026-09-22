@@ -1,4 +1,6 @@
 import { requireSupabase } from './supabase'
+import { getStoredLanguage } from './locale'
+import { translate } from '../locales/messages'
 
 export type InviteCodeRow = {
   id: string
@@ -31,15 +33,15 @@ export function generateInviteCode(length = 8): string {
  */
 export async function consumeInviteCode(code: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const trimmed = code.trim()
-  if (!trimmed) return { ok: false, error: '请输入邀请码' }
+  if (!trimmed) return { ok: false, error: translate(getStoredLanguage(), 'invite.empty') }
   const sb = requireSupabase()
   const { data, error } = await sb.rpc('thryve_consume_invite_code', { p_code: trimmed })
   if (error) {
-    const msg = error.message || '邀请码校验失败'
+    const msg = error.message || translate(getStoredLanguage(), 'invite.fail')
     if (msg.includes('邀请码')) return { ok: false, error: msg }
-    return { ok: false, error: msg.includes('function') ? '邀请码服务未就绪，请稍后再试' : msg }
+    return { ok: false, error: msg.includes('function') ? translate(getStoredLanguage(), 'invite.notReady') : msg }
   }
-  if (data !== true) return { ok: false, error: '邀请码无效、已停用或已达使用上限' }
+  if (data !== true) return { ok: false, error: translate(getStoredLanguage(), 'invite.invalid') }
   return { ok: true }
 }
 

@@ -83,7 +83,7 @@ export function EatingFlowSheet({ open, onClose, onSave }: Props) {
                     aria-valuemax={5}
                     aria-valuenow={band}
                     aria-valuetext={t(appetiteLabelKey(band))}
-                    aria-label="食欲"
+                    aria-label={t('eating.appetite')}
                     className="lake-range"
                   />
                 </div>

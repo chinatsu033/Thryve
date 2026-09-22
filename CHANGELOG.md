@@ -1,3 +1,8 @@
+## Ver 0.1.3 (v0.1.3)
+
+- Sweep leftover Simplified Chinese UI through i18n (6 locales)
+- Localized common med names, region labels, summary templates, med calendar chrome
+
 ## Ver 0.1.2 (v0.1.2)
 
 - 全应用多语言界面（简中 / 英 / 繁中港台 / 日 / 韩）与锁定模块名

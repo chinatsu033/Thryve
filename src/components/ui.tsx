@@ -134,8 +134,8 @@ export function MoodSlider({
           color: 'var(--color-text-muted)',
         }}
       >
-        <span>很低落</span>
-        <span>很平稳 / 积极</span>
+        <span>{t('ui.moodLow')}</span>
+        <span>{t('ui.moodHigh')}</span>
       </div>
     </div>
   )

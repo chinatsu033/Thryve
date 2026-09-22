@@ -177,7 +177,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       aria-label={t('common.date')}
                     />
                     <Button block onClick={startBed}>
-                      确定日期
+                      {t('sleep.confirmDate')}
                     </Button>
                   </div>
                 </motion.div>
@@ -264,7 +264,7 @@ export function SleepFlowSheet({ open, onClose, onSave }: Props) {
                       />
                     </div>
                     <Button block onClick={() => setStep('notes')}>
-                      确定
+                      {t('common.confirm')}
                     </Button>
                   </div>
                 </motion.div>

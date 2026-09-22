@@ -147,7 +147,7 @@ function SleepList({
             {s.notes ? <p style={{ margin: '6px 0 0' }}>{s.notes}</p> : null}
           </div>
           <Button variant="ghost" className="btn-sm" onClick={() => void onDelete(s.id)}>
-            删除
+            {t('common.delete')}
           </Button>
         </div>
       ))}
@@ -170,11 +170,11 @@ function EatingList({
         <div key={e.id} className="list-item">
           <div>
             <strong>{e.date}</strong> · {t(appetiteLabelKey(e.appetite))}
-            <div className="hint">约 {e.meals} 餐 · 食欲 {normalizeAppetite(e.appetite)}/5</div>
+            <div className="hint">{t('body.mealsApprox', { n: String(e.meals), a: String(normalizeAppetite(e.appetite)) })}</div>
             {e.notes ? <p style={{ margin: '6px 0 0' }}>{e.notes}</p> : null}
           </div>
           <Button variant="ghost" className="btn-sm" onClick={() => void onDelete(e.id)}>
-            删除
+            {t('common.delete')}
           </Button>
         </div>
       ))}

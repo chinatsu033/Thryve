@@ -9,7 +9,6 @@ import {
   startOfMonth,
   startOfWeek,
 } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MedEditCard, type MedEditTarget } from './MedEditCard'
@@ -24,7 +23,7 @@ import {
 import { uid } from '../lib/crypto'
 import {
   dayMedMark,
-  frequencyLabel,
+  frequencyLabelKey,
   listDayDoses,
   stripAdherenceFromMark,
   type DayDose,
@@ -34,10 +33,9 @@ import { rescheduleMedReminders } from '../lib/medReminders'
 import { easeOutSoft } from '../lib/motion'
 import type { MedLog, Medication } from '../types'
 import { useLocale } from '../context/LocaleContext'
+import { dateFnsLocale, datePattern } from '../lib/dateLocale'
 import { getStoredLanguage } from '../lib/locale'
 import { translate } from '../locales/messages'
-
-const DOW = ['日', '一', '二', '三', '四', '五', '六'] as const
 
 function adhereLabel(kind: StripAdherence): string {
   const tr = (k: string) => translate(getStoredLanguage(), k)
@@ -89,7 +87,12 @@ export function MedGlowCalendar({
   /** True while calendar expanded or any med sheet/modal is open — parent can lock home swipe. */
   onInteractionChange?: (active: boolean) => void
 }) {
-  const { t: tr } = useLocale()
+  const { t: tr, language } = useLocale()
+  const dowLabels = [0, 1, 2, 3, 4, 5, 6].map((d) => tr(`med.dow.${d}`))
+  const freqLabel = (n: number) => {
+    const key = frequencyLabelKey(n)
+    return key === 'med.freq.everyN' ? tr(key, { n: String(Math.max(1, n || 1)) }) : tr(key)
+  }
   const reduceMotion = useReducedMotion()
   const [meds, setMeds] = useState<Medication[]>([])
   const [logs, setLogs] = useState<MedLog[]>([])
@@ -144,7 +147,7 @@ export function MedGlowCalendar({
   const openEdit = (m: Medication) => setEditTarget(m)
 
   const removeMed = async (m: Medication) => {
-    if (!confirm(`删除「${m.name}」及其打卡记录？`)) return
+    if (!confirm(tr('med.edit.deleteConfirm', { name: m.name }))) return
     setBusy(true)
     try {
       await deleteMedication(m.id)
@@ -199,9 +202,9 @@ export function MedGlowCalendar({
           type="button"
           className={`med-strip-day mark-${adhere} ${isToday ? 'is-today' : ''}`}
           onClick={() => setSelectedDay(key)}
-          aria-label={`${format(day, 'M月d日', { locale: zhCN })} ${adhereLabel(adhere) || tr('med.status.none')}`}
+          aria-label={`${format(day, datePattern(language, 'monthDay'), { locale: dateFnsLocale(language) })} ${adhereLabel(adhere) || tr('med.status.none')}`}
         >
-          <span className="med-strip-dow">{DOW[day.getDay()]}</span>
+          <span className="med-strip-dow">{dowLabels[day.getDay()]}</span>
           <span className="med-strip-num">{format(day, 'd')}</span>
           <span className={`med-strip-dot mark-${adhere}`} />
           <span className="med-strip-status">{adhereLabel(adhere) || '—'}</span>
@@ -236,7 +239,7 @@ export function MedGlowCalendar({
       {!hasMeds ? (
         <button type="button" className="med-glow-empty-card" onClick={openNew}>
           <span className="med-glow-empty-plus">+</span>
-          <span className="med-glow-empty-caption">点击添加用药提醒</span>
+          <span className="med-glow-empty-caption">{tr('med.glow.emptyAdd')}</span>
         </button>
       ) : (
         <div className="med-glow-card">
@@ -250,34 +253,34 @@ export function MedGlowCalendar({
                 transition={{ duration: reduceMotion ? 0.01 : 0.28, ease: easeOutSoft }}
               >
                 <div className="med-glow-header">
-                  <h3 className="med-glow-title">微光日历</h3>
+                  <h3 className="med-glow-title">{tr('brand.glimmerCal')}</h3>
                   <button
                     type="button"
                     className="med-glow-dots"
-                    aria-label="用药设置"
+                    aria-label={tr('med.cal.settingsAria')}
                     onClick={() => setManageOpen(true)}
                   >
                     <DotsIcon />
                   </button>
                 </div>
                 <div className="med-cal-dow">
-                  {DOW.map((d) => (
+                  {dowLabels.map((d) => (
                     <span key={d}>{d}</span>
                   ))}
                 </div>
                 <div className="med-cal-grid">{calendarDays.map((d) => renderDayCell(d))}</div>
                 <div className="med-cal-legend hint">
                   <span>
-                    <i className="med-cal-dot mark-scheduled" /> 计划
+                    <i className="med-cal-dot mark-scheduled" /> {tr('med.status.planned')}
                   </span>
                   <span>
-                    <i className="med-cal-dot mark-partial" /> 部分
+                    <i className="med-cal-dot mark-partial" /> {tr('med.status.partial')}
                   </span>
                   <span>
-                    <i className="med-cal-dot mark-done" /> 已服
+                    <i className="med-cal-dot mark-done" /> {tr('med.status.taken')}
                   </span>
                   <span>
-                    <i className="med-cal-dot mark-missed" /> 漏服
+                    <i className="med-cal-dot mark-missed" /> {tr('med.status.missed')}
                   </span>
                 </div>
               </motion.div>
@@ -311,10 +314,10 @@ export function MedGlowCalendar({
         <div className="med-glow-list">
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 className="card-title" style={{ margin: 0 }}>
-              我的药品
+              {tr('med.myMeds')}
             </h3>
             <Button className="btn-sm" onClick={openNew}>
-              + 添加
+              + {tr('common.add')}
             </Button>
           </div>
           <div className="list">
@@ -328,19 +331,19 @@ export function MedGlowCalendar({
                       aria-hidden
                     />
                     {m.name}
-                    {!m.enabled ? <span className="hint"> · 已停用</span> : null}
+                    {!m.enabled ? <span className="hint"> · {tr('common.disabled')}</span> : null}
                   </strong>
                   <div className="hint">
                     {m.dosage || tr('med.cal.noDosage')}
                     {m.reminderTimes.length ? ` · ${m.reminderTimes.join('、')}` : ''}
-                    {` · ${frequencyLabel(m.intervalDays)}`}
+                    {` · ${freqLabel(m.intervalDays)}`}
                   </div>
                 </div>
                 <Button variant="ghost" className="btn-sm" onClick={() => openEdit(m)}>
-                  编辑
+                  {tr('common.edit')}
                 </Button>
                 <Button variant="ghost" className="btn-sm" onClick={() => void removeMed(m)}>
-                  删除
+                  {tr('common.delete')}
                 </Button>
               </div>
             ))}
@@ -351,13 +354,13 @@ export function MedGlowCalendar({
       <Modal
         open={manageOpen}
         onClose={() => setManageOpen(false)}
-        title="用药设置"
+        title={tr('med.cal.settings')}
       >
         <p className="hint" style={{ marginTop: 0 }}>
-          在首页管理提醒；也可在「基石 · 用药」查看详情。
+          {tr('med.glow.settingsHint')}
         </p>
         <Button block onClick={() => { setManageOpen(false); openNew() }}>
-          + 添加用药提醒
+          + {tr('med.edit.add')}
         </Button>
         {meds.length === 0 ? (
           <Empty text={tr('med.cal.empty')} />
@@ -368,8 +371,8 @@ export function MedGlowCalendar({
                 <div style={{ flex: 1 }}>
                   <strong>{m.name}</strong>
                   <div className="hint">
-                    {m.dosage || tr('med.cal.noDosage')} · {frequencyLabel(m.intervalDays)}
-                    {!m.enabled ? ' · 已停用' : ''}
+                    {m.dosage || tr('med.cal.noDosage')} · {freqLabel(m.intervalDays)}
+                    {!m.enabled ? ` · ${tr('common.disabled')}` : ''}
                   </div>
                 </div>
                 <Button
@@ -380,10 +383,10 @@ export function MedGlowCalendar({
                     openEdit(m)
                   }}
                 >
-                  编辑
+                  {tr('common.edit')}
                 </Button>
                 <Button variant="ghost" className="btn-sm" disabled={busy} onClick={() => void removeMed(m)}>
-                  删除
+                  {tr('common.delete')}
                 </Button>
               </div>
             ))}
@@ -394,7 +397,7 @@ export function MedGlowCalendar({
       <Modal
         open={Boolean(selectedDay)}
         onClose={() => setSelectedDay(null)}
-        title={selectedDay ? `${selectedDay} 用药` : tr('brand.remedy')}
+        title={selectedDay ? tr('med.cal.dayTitle', { date: selectedDay }) : tr('brand.remedy')}
       >
         {dayDoses.length === 0 ? (
           <Empty text={tr('med.cal.noPlan')} />
@@ -423,7 +426,7 @@ export function MedGlowCalendar({
                   disabled={busy}
                   onClick={() => void markDose(d, false)}
                 >
-                  已服
+                  {tr('med.status.taken')}
                 </Button>
                 <Button
                   variant={d.status === 'skipped' ? 'accent' : 'ghost'}
@@ -431,7 +434,7 @@ export function MedGlowCalendar({
                   disabled={busy}
                   onClick={() => void markDose(d, true)}
                 >
-                  跳过
+                  {tr('med.status.skipped')}
                 </Button>
               </div>
             ))}

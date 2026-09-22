@@ -1,10 +1,16 @@
 import { format, parseISO, getDay, eachDayOfInterval, startOfMonth, endOfMonth, differenceInCalendarDays } from 'date-fns'
 import type { Medication, MedLog } from '../types'
 
-const DOW_LABELS = ['日', '一', '二', '三', '四', '五', '六'] as const
+/** i18n key for weekday chip (0=Sun … 6=Sat). */
+export function dowLabelKey(d: number): `med.dow.${number}` {
+  const i = ((d % 7) + 7) % 7
+  return `med.dow.${i}` as `med.dow.${number}`
+}
 
+/** @deprecated Prefer dowLabelKey + translate */
 export function dowLabel(d: number): string {
-  return DOW_LABELS[((d % 7) + 7) % 7] ?? String(d)
+  const labels = ['日', '一', '二', '三', '四', '五', '六'] as const
+  return labels[((d % 7) + 7) % 7] ?? String(d)
 }
 
 /**
@@ -140,17 +146,21 @@ export function defaultTimesForCount(n: number): string[] {
   return out
 }
 
-export const FREQUENCY_OPTIONS: { label: string; intervalDays: number }[] = [
-  { label: '每天', intervalDays: 1 },
-  { label: '隔天', intervalDays: 2 },
-  { label: '每两天', intervalDays: 3 },
-  { label: '每三天', intervalDays: 4 },
-  { label: '每四天', intervalDays: 5 },
-  { label: '每五天', intervalDays: 6 },
-  { label: '每六天', intervalDays: 7 },
-  { label: '每周', intervalDays: 7 },
-]
+export const FREQUENCY_INTERVALS = [1, 2, 3, 4, 5, 6, 7, 7] as const
 
+export function frequencyLabelKey(intervalDays: number): string {
+  const n = Math.max(1, intervalDays || 1)
+  if (n === 1) return 'med.freq.daily'
+  if (n === 2) return 'med.freq.everyOther'
+  if (n === 3) return 'med.freq.every2'
+  if (n === 4) return 'med.freq.every3'
+  if (n === 5) return 'med.freq.every4'
+  if (n === 6) return 'med.freq.every5'
+  if (n === 7) return 'med.freq.weekly'
+  return 'med.freq.everyN'
+}
+
+/** Legacy Chinese labels — prefer frequencyLabelKey + translate. */
 export function frequencyLabel(intervalDays: number): string {
   const n = Math.max(1, intervalDays || 1)
   if (n === 1) return '每天'
@@ -163,7 +173,41 @@ export function frequencyLabel(intervalDays: number): string {
   return `每${n}天`
 }
 
-export const COMMON_MED_NAMES = [
+export const COMMON_MED_IDS = [
+  'sertraline',
+  'fluoxetine',
+  'paroxetine',
+  'escitalopram',
+  'venlafaxine',
+  'mirtazapine',
+  'duloxetine',
+  'trazodone',
+  'quetiapine',
+  'olanzapine',
+  'aripiprazole',
+  'risperidone',
+  'lithium',
+  'valproate',
+  'lamotrigine',
+  'clonazepam',
+  'lorazepam',
+  'alprazolam',
+  'zopiclone',
+  'zolpidem',
+  'melatonin',
+  'vitaminD',
+  'vitaminB',
+  'probiotic',
+] as const
+
+export type CommonMedId = (typeof COMMON_MED_IDS)[number]
+
+export function commonMedNameKey(id: CommonMedId): `med.name.${CommonMedId}` {
+  return `med.name.${id}`
+}
+
+/** zh-Hans display names (also match legacy stored entries). */
+export const COMMON_MED_NAMES_ZH = [
   '舍曲林',
   '氟西汀',
   '帕罗西汀',
@@ -189,6 +233,9 @@ export const COMMON_MED_NAMES = [
   '维生素B',
   '益生菌',
 ] as const
+
+/** @deprecated Use COMMON_MED_IDS + commonMedNameKey */
+export const COMMON_MED_NAMES = COMMON_MED_NAMES_ZH
 
 export function monthDayKeys(month: Date): string[] {
   return eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) }).map((d) =>

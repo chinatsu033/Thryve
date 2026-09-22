@@ -13,7 +13,6 @@ import {
   getLocaleSetupDone,
   getStoredLanguage,
   getStoredRegion,
-  regionLabel,
   setLocaleSetupDone as persistSetupDone,
   setStoredLanguage,
   setStoredRegion,
@@ -85,7 +84,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [language])
 
   const regionDisplayName = useCallback(
-    (id?: RegionId) => regionLabel(id ?? region, language),
+    (id?: RegionId) => translate(language, `region.${id ?? region}`),
     [region, language],
   )
 

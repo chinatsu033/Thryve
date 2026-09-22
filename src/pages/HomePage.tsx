@@ -126,7 +126,7 @@ export function HomePage() {
     hint: string
     variant: 'primary' | 'accent' | 'ghost'
   }> = [
-    { to: '/summary', label: t('nav.heartprint'), hint: '就医总结', variant: 'ghost' },
+    { to: '/summary', label: t('nav.heartprint'), hint: t('nav.heartprint.hint'), variant: 'ghost' },
     { to: '/emotion', label: t('nav.attune'), hint: t('nav.attune.hint'), variant: 'primary' },
     { to: '/body', label: t('nav.cornerstone'), hint: t('nav.cornerstone.hint'), variant: 'accent' },
   ]
@@ -274,6 +274,12 @@ export function HomePage() {
   const sceneMood = latestMood ? normalizeMood(latestMood.mood, latestMood) : 50
 
   const labelFor = (e: EmotionEntry) => t(moodSoftLabelKey(normalizeMood(e.mood, e)))
+  const tagLabel = (w: string) => {
+    const k = `tag.${w}`
+    const tr = t(k)
+    return tr === k ? w : tr
+  }
+  const joinTags = (tags: string[]) => tags.map(tagLabel).join(t('list.sep'))
   const showScenicChrome = !emotionFlowOpen
   const morphDuration = reduceMotion ? 0.01 : 0.48
 
@@ -339,9 +345,9 @@ export function HomePage() {
                       }}
                       transition={{ duration: morphDuration, ease: easeOutSoft }}
                     >
-                      <h1 className="home-landing-greet">你好，{profile.name}</h1>
+                      <h1 className="home-landing-greet">{t('home.greet', { name: profile.name })}</h1>
                       <p className="home-landing-sub">
-                        <span className="home-landing-sub-box">今天也请温柔对待自己</span>
+                        <span className="home-landing-sub-box">{t('home.greet.sub')}</span>
                       </p>
                       <div className="home-landing-cta-wrap">
                         <button
@@ -349,7 +355,7 @@ export function HomePage() {
                           className="home-landing-listen-btn"
                           onClick={openEmotionFromLanding}
                         >
-                          倾听心痕
+                          {t('brand.attuneMarks')}
                         </button>
                       </div>
                     </motion.div>
@@ -441,12 +447,12 @@ export function HomePage() {
             <Card title={t('brand.todayGlimpse')}>
               {latestMood ? (
                 <p>
-                  最近情绪：<strong>{labelFor(latestMood)}</strong>
-                  {latestMood.tags.length ? ` · ${latestMood.tags.join('、')}` : ''}
+                  {t('home.recentMood')}<strong>{labelFor(latestMood)}</strong>
+                  {latestMood.tags.length ? ` · ${joinTags(latestMood.tags)}` : ''}
                   <br />
                   <span className="meta hint">
                     {format(parseISO(latestMood.recordedAt), datePattern(language, 'monthDayTime'), { locale: dateFnsLocale(language) })}
-                    {latestMood.mode === 'daily' ? ' · 全天总结' : ' · 当下感受'}
+                    {latestMood.mode === 'daily' ? ` · ${t('home.mode.daily')}` : ` · ${t('home.mode.current')}`}
                   </span>
                 </p>
               ) : (
@@ -454,13 +460,13 @@ export function HomePage() {
               )}
               {latestSleep ? (
                 <p style={{ marginTop: 10 }}>
-                  最近睡眠：<strong>{t(sleepQualityLabelKey(latestSleep.quality))}</strong>
+                  {t('home.recentSleep')}<strong>{t(sleepQualityLabelKey(latestSleep.quality))}</strong>
                   <span className="hint"> · {latestSleep.date}</span>
                 </p>
               ) : null}
               {latestEating ? (
                 <p style={{ marginTop: 10 }}>
-                  最近饮食：<strong>{t(appetiteLabelKey(latestEating.appetite))}</strong>
+                  {t('home.recentEating')}<strong>{t(appetiteLabelKey(latestEating.appetite))}</strong>
                   <span className="hint"> · {latestEating.date}</span>
                 </p>
               ) : null}
@@ -475,7 +481,7 @@ export function HomePage() {
                     <div key={e.id} className="list-item">
                       <div>
                         <strong>{labelFor(e)}</strong>
-                        {e.tags.length ? ` · ${e.tags.join('、')}` : ''}
+                        {e.tags.length ? ` · ${joinTags(e.tags)}` : ''}
                         {e.notes ? <div className="hint">{e.notes.slice(0, 80)}</div> : null}
                         <div className="meta">
                           {format(parseISO(e.recordedAt), 'yyyy-MM-dd HH:mm', { locale: dateFnsLocale(language) })}
@@ -492,7 +498,7 @@ export function HomePage() {
             <div className="home-fab-stack">
               <Link to="/help/crisis" className="home-crisis-fab" aria-label={t('brand.urgentCare')}>
                 <CrisisHelpIcon />
-                <span>求助</span>
+                <span>{t('home.fab.help')}</span>
               </Link>
               <Link to="/settings" className="home-settings-fab" aria-label={t('brand.settings')}>
                 <SettingsGearIcon />

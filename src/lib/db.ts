@@ -6,6 +6,8 @@
 import { isLegacyMoodEntry, normalizeMood } from './mood'
 import { requireSupabase } from './supabase'
 import { DEFAULT_THEME, type EatingEntry, type EmotionEntry, type MedLog, type Medication, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
+import { getStoredLanguage } from './locale'
+import { translate } from '../locales/messages'
 
 function hydrateEmotion(e: EmotionEntry): EmotionEntry {
   const sources = e.sources ?? []
@@ -97,7 +99,7 @@ type MedLogRow = {
 function rowToProfile(row: ProfileRow, email: string): Profile {
   return {
     id: row.id,
-    name: row.display_name?.trim() || email.split('@')[0] || '用户',
+    name: row.display_name?.trim() || email.split('@')[0] || translate(getStoredLanguage(), 'auth.defaultUser'),
     email,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -186,7 +188,7 @@ export async function ensureProfile(userId: string, email: string, displayName?:
 
   const insert = {
     id: userId,
-    display_name: displayName?.trim() || email.split('@')[0] || '用户',
+    display_name: displayName?.trim() || email.split('@')[0] || translate(getStoredLanguage(), 'auth.defaultUser'),
     theme: DEFAULT_THEME,
   }
   const { data: created, error: insertErr } = await sb.from('thryve_profiles').upsert(insert).select('*').single()
@@ -378,7 +380,7 @@ export async function getAttachmentBlob(_id: string): Promise<Blob | undefined> 
   return undefined
 }
 export async function saveAttachment(_meta: import('../types').AttachmentMeta, _blob: Blob): Promise<void> {
-  throw new Error('云端附件尚未开放（MVP）')
+  throw new Error(translate(getStoredLanguage(), 'summary.attachUnavailable'))
 }
 export async function deleteAttachment(_id: string): Promise<void> {
   /* no-op */
@@ -386,7 +388,7 @@ export async function deleteAttachment(_id: string): Promise<void> {
 
 export async function exportProfile(userId: string, email = ''): Promise<ProfileExport> {
   const profile = await getProfile(userId, email)
-  if (!profile) throw new Error('档案不存在')
+  if (!profile) throw new Error(translate(getStoredLanguage(), 'common.unknownError'))
 
   const [emotions, sleeps, eatings] = await Promise.all([
     listEmotions(userId),

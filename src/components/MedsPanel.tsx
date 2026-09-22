@@ -9,7 +9,6 @@ import {
   startOfWeek,
   subMonths,
 } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { formatHm, parseHm } from '../lib/sleep'
 import { AnalogClockPicker } from './AnalogClockPicker'
@@ -36,16 +35,8 @@ import {
 } from '../lib/medReminders'
 import type { MedLog, Medication } from '../types'
 import { useLocale } from '../context/LocaleContext'
+import { dateFnsLocale, datePattern } from '../lib/dateLocale'
 
-const DOW_CHIPS: { v: number; label: string }[] = [
-  { v: 0, label: '日' },
-  { v: 1, label: '一' },
-  { v: 2, label: '二' },
-  { v: 3, label: '三' },
-  { v: 4, label: '四' },
-  { v: 5, label: '五' },
-  { v: 6, label: '六' },
-]
 
 type MedForm = {
   name: string
@@ -86,7 +77,8 @@ function formFromMed(m: Medication): MedForm {
 }
 
 export function MedsPanel({ userId }: { userId: string }) {
-  const { t: tr } = useLocale()
+  const { t: tr, language } = useLocale()
+  const DOW_CHIPS = [0,1,2,3,4,5,6].map((v) => ({ v, label: tr(`med.dow.${v}`) }))
   const [meds, setMeds] = useState<Medication[]>([])
   const [logs, setLogs] = useState<MedLog[]>([])
   const [month, setMonth] = useState(() => startOfMonth(new Date()))
@@ -237,7 +229,7 @@ export function MedsPanel({ userId }: { userId: string }) {
   }
 
   const removeMed = async (m: Medication) => {
-    if (!confirm(`删除「${m.name}」及其打卡记录？`)) return
+    if (!confirm(tr('med.edit.deleteConfirm', { name: m.name }))) return
     setBusy(true)
     try {
       await deleteMedication(m.id)
@@ -284,7 +276,7 @@ export function MedsPanel({ userId }: { userId: string }) {
   return (
     <div className="meds-panel">
       <p className="hint meds-disclaimer">
-        网页提醒在标签关闭时可能不准；建议保留标签或「添加到主屏幕」。本功能不能替代医嘱。
+        {tr('med.panel.hint')}
       </p>
       {msg ? <p className="hint" style={{ color: 'var(--color-danger, #c62828)' }}>{msg}</p> : null}
 
@@ -293,7 +285,7 @@ export function MedsPanel({ userId }: { userId: string }) {
           <Button variant="ghost" className="btn-sm" onClick={() => setMonth((m) => subMonths(m, 1))}>
             ‹
           </Button>
-          <strong>{format(month, 'yyyy年M月', { locale: zhCN })}</strong>
+          <strong>{format(month, datePattern(language, 'yearMonth'), { locale: dateFnsLocale(language) })}</strong>
           <Button variant="ghost" className="btn-sm" onClick={() => setMonth((m) => addMonths(m, 1))}>
             ›
           </Button>
@@ -325,17 +317,17 @@ export function MedsPanel({ userId }: { userId: string }) {
           })}
         </div>
         <div className="med-cal-legend hint">
-          <span><i className="med-cal-dot mark-scheduled" /> 计划</span>
-          <span><i className="med-cal-dot mark-partial" /> 部分</span>
-          <span><i className="med-cal-dot mark-done" /> 已服/跳过</span>
-          <span><i className="med-cal-dot mark-missed" /> 漏服</span>
+          <span><i className="med-cal-dot mark-scheduled" /> {tr('med.status.planned')}</span>
+          <span><i className="med-cal-dot mark-partial" /> {tr('med.status.partial')}</span>
+          <span><i className="med-cal-dot mark-done" /> {tr('med.cal.doneOrSkip')}</span>
+          <span><i className="med-cal-dot mark-missed" /> {tr('med.status.missed')}</span>
         </div>
       </div>
 
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-        <h3 className="card-title" style={{ margin: 0 }}>我的药品</h3>
+        <h3 className="card-title" style={{ margin: 0 }}>{tr('med.myMeds')}</h3>
         <Button className="btn-sm" onClick={() => void openNew()}>
-          + 添加
+          + {tr('common.add')}
         </Button>
       </div>
 
@@ -353,7 +345,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                     aria-hidden
                   />
                   {m.name}
-                  {!m.enabled ? <span className="hint"> · 已停用</span> : null}
+                  {!m.enabled ? <span className="hint"> · {tr('common.disabled')}</span> : null}
                 </strong>
                 <div className="hint">
                   {m.dosage || tr('med.cal.dosageUnset')}
@@ -361,16 +353,16 @@ export function MedsPanel({ userId }: { userId: string }) {
                     ? ` · ${m.reminderTimes.join('、')}`
                     : ''}
                   {m.daysOfWeek == null || m.daysOfWeek.length === 0
-                    ? ' · 每天'
-                    : ` · 周${m.daysOfWeek.map((d) => DOW_CHIPS.find((c) => c.v === d)?.label ?? d).join('')}`}
+                    ? ` · ${tr('med.dailyShort')}`
+                    : ` · ${tr('med.weekDays', { days: m.daysOfWeek.map((d) => DOW_CHIPS.find((c) => c.v === d)?.label ?? d).join('') })}`}
                 </div>
                 {m.notes ? <p style={{ margin: '6px 0 0' }}>{m.notes}</p> : null}
               </div>
               <Button variant="ghost" className="btn-sm" onClick={() => openEdit(m)}>
-                编辑
+                {tr('common.edit')}
               </Button>
               <Button variant="ghost" className="btn-sm" onClick={() => void removeMed(m)}>
-                删除
+                {tr('common.delete')}
               </Button>
             </div>
           ))}
@@ -380,7 +372,7 @@ export function MedsPanel({ userId }: { userId: string }) {
       <Modal
         open={Boolean(selectedDay)}
         onClose={() => setSelectedDay(null)}
-        title={selectedDay ? `${selectedDay} 用药` : tr('brand.remedy')}
+        title={selectedDay ? tr('med.cal.dayTitle', { date: selectedDay }) : tr('brand.remedy')}
       >
         {dayDoses.length === 0 ? (
           <Empty text={tr('med.cal.noPlan')} />
@@ -409,7 +401,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                   disabled={busy}
                   onClick={() => void markDose(d, false)}
                 >
-                  已服
+                  {tr('med.status.taken')}
                 </Button>
                 <Button
                   variant={d.status === 'skipped' ? 'accent' : 'ghost'}
@@ -417,7 +409,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                   disabled={busy}
                   onClick={() => void markDose(d, true)}
                 >
-                  跳过
+                  {tr('med.status.skipped')}
                 </Button>
               </div>
             ))}
@@ -452,7 +444,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                   type="button"
                   className="chip med-time-chip"
                   onClick={() => openTimePicker(i)}
-                  aria-label={`提醒时间 ${t || tr('common.unset')}`}
+                  aria-label={tr('med.edit.reminderN', { n: '', time: t || tr('common.unset') })}
                 >
                   {normalizeReminderTime(t) || t || tr('common.selectTime')}
                 </button>
@@ -466,7 +458,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                     })
                   }
                 >
-                  移除
+                  {tr('med.remove')}
                 </Button>
               </div>
             ))}
@@ -475,7 +467,7 @@ export function MedsPanel({ userId }: { userId: string }) {
               className="btn-sm"
               onClick={() => setForm({ ...form, reminderTimes: [...form.reminderTimes, '20:00'] })}
             >
-              + 时间
+              {tr('med.addTime')}
             </Button>
           </div>
           {pickingIndex != null ? (
@@ -485,7 +477,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                 hour={pickH}
                 minute={pickM}
                 mode={clockMode}
-                chip={`时间 ${pickingIndex + 1}`}
+                chip={tr('med.edit.timeN', { n: String(pickingIndex + 1) })}
                 onHourChange={setPickH}
                 onMinuteChange={setPickM}
                 onHourCommit={() => setClockMode('minute')}
@@ -493,13 +485,13 @@ export function MedsPanel({ userId }: { userId: string }) {
               />
               <div className="row" style={{ marginTop: 10, justifyContent: 'center', gap: 8 }}>
                 <Button variant="ghost" className="btn-sm" onClick={() => setClockMode('hour')}>
-                  重选小时
+                  {tr('med.edit.reselectHour')}
                 </Button>
                 <Button className="btn-sm" onClick={commitPickedTime}>
-                  完成
+                  {tr('med.edit.done')}
                 </Button>
                 <Button variant="ghost" className="btn-sm" onClick={() => setPickingIndex(null)}>
-                  取消
+                  {tr('common.cancel')}
                 </Button>
               </div>
             </div>
@@ -512,7 +504,7 @@ export function MedsPanel({ userId }: { userId: string }) {
               className={`chip ${everyDay ? 'active' : ''}`}
               onClick={() => setForm({ ...form, daysOfWeek: null })}
             >
-              每天
+              {tr('med.freq.daily')}
             </button>
             {DOW_CHIPS.map((d) => {
               const active = !everyDay && (form.daysOfWeek ?? []).includes(d.v)
@@ -533,7 +525,7 @@ export function MedsPanel({ userId }: { userId: string }) {
                     setForm({ ...form, daysOfWeek: arr.length ? arr : null })
                   }}
                 >
-                  周{d.label}
+                  {tr('med.weekDays', { days: d.label })}
                 </button>
               )
             })}
@@ -559,14 +551,14 @@ export function MedsPanel({ userId }: { userId: string }) {
             checked={form.enabled}
             onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
           />
-          启用提醒与日历计划
+          {tr('med.enablePlan')}
         </label>
         <div className="row" style={{ marginTop: 12 }}>
           <Button disabled={busy} onClick={() => void saveMed()}>
             {busy ? tr('common.saving') : tr('common.save')}
           </Button>
           <Button variant="ghost" onClick={() => setEditMed(null)}>
-            取消
+            {tr('common.cancel')}
           </Button>
         </div>
       </Modal>
