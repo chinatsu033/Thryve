@@ -7,8 +7,21 @@
     <meta name="description" content="Thryve — 个人情绪、睡眠与就医总结工具" />
     <meta name="theme-color" content="#5B6CFF" />
     <title>Thryve</title>
-    <script type="module" crossorigin src="/Thryve/assets/index-CHF3Ag5q.js"></script>
-    <link rel="stylesheet" crossorigin href="/Thryve/assets/index-a-4QqGm2.css">
+    <script>
+      (function () {
+        try {
+          var redirect = sessionStorage.getItem('ghpages-redirect')
+          if (redirect) {
+            sessionStorage.removeItem('ghpages-redirect')
+            if (redirect !== location.href) {
+              history.replaceState(null, '', redirect)
+            }
+          }
+        } catch (e) {}
+      })()
+    </script>
+    <script type="module" crossorigin src="/Thryve/assets/index-iMratrk2.js"></script>
+    <link rel="stylesheet" crossorigin href="/Thryve/assets/index-C160TBQR.css">
   </head>
   <body>
     <div id="root"></div>
