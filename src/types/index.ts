@@ -189,3 +189,28 @@ export const CHECKLIST_LABELS: Record<keyof DepressiveChecklist, string> = {
   psychomotor: '动作迟缓或烦躁不安',
   suicidalThoughts: '消极念头或自伤想法',
 }
+
+/** Contrast module (对照) — self-check scales, localStorage-backed. */
+export type ContrastScaleId =
+  | 'phq9'
+  | 'gad7'
+  | 'phq2'
+  | 'gad2'
+  | 'phq15'
+  | 'who5'
+  | 'dass21'
+  | 'ais'
+
+export interface ContrastResult {
+  id: string
+  profileId: string
+  scaleId: ContrastScaleId
+  answers: number[]
+  scores: Record<string, number>
+  completedAt: string
+}
+
+export interface ContrastReminderState {
+  firstCompletedAt: string | null
+  lastCompletedAt: string | null
+}

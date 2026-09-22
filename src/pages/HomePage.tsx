@@ -15,6 +15,7 @@ import { appetiteLabelKey } from '../lib/eating'
 import { easeOutSoft, layerTransition } from '../lib/motion'
 import { sleepQualityLabelKey } from '../lib/sleep'
 import type { EatingEntry, EmotionEntry, SleepEntry } from '../types'
+import { isContrastReminderDue } from '../lib/contrastStore'
 import { useLocale } from '../context/LocaleContext'
 
 type Layer = 'landing' | 'dashboard'
@@ -441,6 +442,16 @@ export function HomePage() {
                 </Link>
               ))}
             </nav>
+
+            <Link to="/contrast" className="home-contrast-link">
+              {isContrastReminderDue(profile.id) ? (
+                <span className="home-contrast-dot" aria-hidden />
+              ) : null}
+              <Button block variant="ghost" className="home-contrast-btn">
+                <span className="home-cta-label">{t('nav.contrast')}</span>
+                <span className="home-cta-hint">{t('nav.contrast.hint')}</span>
+              </Button>
+            </Link>
 
             <MedGlowCalendar userId={profile.id} onInteractionChange={setMedGestureLock} />
 

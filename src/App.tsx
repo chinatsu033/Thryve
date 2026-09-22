@@ -13,6 +13,7 @@ import { LanguageSelectPage } from './pages/LanguageSelectPage'
 import { OnboardingPage } from './pages/OnboardingPage'
 import { RegionSelectPage } from './pages/RegionSelectPage'
 import { SettingsPage } from './pages/SettingsPage'
+import { ContrastPage } from './pages/ContrastPage'
 import { SummaryPage } from './pages/SummaryPage'
 import type { ReactNode } from 'react'
 
@@ -100,6 +101,16 @@ export default function App() {
               <RequireLocaleSetup>
                 <RequireAuth>
                   <SummaryPage />
+                </RequireAuth>
+              </RequireLocaleSetup>
+            }
+          />
+          <Route
+            path="/contrast"
+            element={
+              <RequireLocaleSetup>
+                <RequireAuth>
+                  <ContrastPage />
                 </RequireAuth>
               </RequireLocaleSetup>
             }
