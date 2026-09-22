@@ -115,6 +115,17 @@ function SettingsGearIcon() {
   )
 }
 
+function CrisisHelpIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 15h-2v-2h2zm0-4h-2V7h2z"
+      />
+    </svg>
+  )
+}
+
 export function HomePage() {
   const { profile } = useAuth()
   const location = useLocation()
@@ -475,9 +486,15 @@ export function HomePage() {
 
             <Disclaimer />
 
-            <Link to="/settings" className="home-settings-fab" aria-label="设置">
-              <SettingsGearIcon />
-            </Link>
+            <div className="home-fab-stack">
+              <Link to="/help/crisis" className="home-crisis-fab" aria-label="紧急求助">
+                <CrisisHelpIcon />
+                <span>求助</span>
+              </Link>
+              <Link to="/settings" className="home-settings-fab" aria-label="设置">
+                <SettingsGearIcon />
+              </Link>
+            </div>
           </Page>
         </motion.div>
       )}

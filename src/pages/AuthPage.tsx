@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
 
@@ -124,6 +124,9 @@ export function AuthPage() {
       </Card>
       <p className="hint" style={{ marginTop: 16, textAlign: 'center' }}>
         登录后数据同步至云端（按账户隔离）。换设备用同一邮箱即可继续记录。
+      </p>
+      <p className="crisis-auth-link">
+        <Link to="/help/crisis">遇到紧急情况？获取心理援助</Link>
       </p>
     </Page>
   )

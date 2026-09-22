@@ -7,6 +7,19 @@
     <meta name="description" content="Thryve — 个人情绪、睡眠与就医总结工具" />
     <meta name="theme-color" content="#5B6CFF" />
     <title>Thryve</title>
+    <script>
+      (function () {
+        try {
+          var redirect = sessionStorage.getItem('ghpages-redirect')
+          if (redirect) {
+            sessionStorage.removeItem('ghpages-redirect')
+            if (redirect !== location.href) {
+              history.replaceState(null, '', redirect)
+            }
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

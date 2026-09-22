@@ -1103,32 +1103,56 @@ p {
   margin-bottom: 8px;
 }
 
-.home-settings-fab {
+.home-fab-stack {
   position: fixed;
   right: max(16px, env(safe-area-inset-right, 0px));
   bottom: max(18px, env(safe-area-inset-bottom, 0px));
   z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.home-settings-fab,
+.home-crisis-fab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
   border-radius: var(--radius-md);
   background: var(--color-card);
-  color: var(--color-text-muted);
   box-shadow: var(--shadow-sm);
   border: 1px solid rgba(26, 26, 46, 0.08);
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 
-.home-settings-fab:active {
+.home-settings-fab {
+  width: 44px;
+  height: 44px;
+  color: var(--color-text-muted);
+}
+
+.home-crisis-fab {
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 12px;
+  color: #c62828;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: #fff5f5;
+  border-color: rgba(229, 57, 53, 0.18);
+}
+
+.home-settings-fab:active,
+.home-crisis-fab:active {
   opacity: 0.85;
   transform: scale(0.96);
 }
 
 .home-dashboard-layer .page {
-  padding-bottom: 64px;
+  padding-bottom: 112px;
 }
 
 
@@ -2021,4 +2045,100 @@ p {
 }
 .settings-changelog {
   margin: 0;
+}
+
+
+/* —— Crisis help (中国大陆心理紧急求助) —— */
+.crisis-urgent-card {
+  border: 1px solid rgba(229, 57, 53, 0.22);
+  background: linear-gradient(180deg, #fff8f8 0%, var(--color-card) 64%);
+}
+
+.crisis-settings-card {
+  border: 1px solid rgba(229, 57, 53, 0.18);
+  background: linear-gradient(180deg, #fff7f7 0%, var(--color-card) 70%);
+}
+
+.crisis-lead {
+  margin: 0 0 12px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.crisis-tel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crisis-tel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast);
+}
+
+.crisis-tel:active {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+.crisis-tel-urgent {
+  background: rgba(229, 57, 53, 0.1);
+  color: #b71c1c;
+  border: 1px solid rgba(229, 57, 53, 0.28);
+}
+
+.crisis-tel-calm {
+  background: rgba(91, 108, 255, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(91, 108, 255, 0.2);
+}
+
+.crisis-tel-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.crisis-tel-hint {
+  font-size: 0.82rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.crisis-notes,
+.crisis-tips {
+  margin: 12px 0 0;
+  padding-left: 1.15rem;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.crisis-notes li,
+.crisis-tips li {
+  margin-bottom: 0.45rem;
+}
+
+.crisis-notes li:last-child,
+.crisis-tips li:last-child {
+  margin-bottom: 0;
+}
+
+.crisis-disclaimer {
+  margin-top: 8px;
+}
+
+.crisis-auth-link {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.crisis-auth-link a {
+  font-weight: 600;
 }

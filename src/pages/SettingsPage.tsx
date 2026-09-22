@@ -161,6 +161,19 @@ export function SettingsPage() {
         </Card>
       ) : null}
 
+      <Card className="crisis-settings-card" title="紧急求助">
+        <p style={{ marginTop: 0 }}>
+          中国大陆急救与心理援助热线（无需登录亦可打开）。若处于立即危险，请优先拨打 120 / 110。
+        </p>
+        <Button
+          variant="danger"
+          block
+          onClick={() => navigate('/help/crisis')}
+        >
+          打开紧急求助页
+        </Button>
+      </Card>
+
       <Card title="个人资料">
         <Field label="邮箱">
           <input value={profile.email} disabled readOnly />

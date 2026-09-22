@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { MedReminderHost } from './components/MedReminderHost'
 import { useAuth } from './context/AuthContext'
 import { AuthPage } from './pages/AuthPage'
+import { CrisisHelpPage } from './pages/CrisisHelpPage'
 import { BodyPage } from './pages/BodyPage'
 import { EmotionPage } from './pages/EmotionPage'
 import { HomePage } from './pages/HomePage'
@@ -31,6 +32,8 @@ export default function App() {
           path="/auth"
           element={profile ? <Navigate to="/" replace /> : <AuthPage />}
         />
+        <Route path="/help/crisis" element={<CrisisHelpPage />} />
+        <Route path="/crisis" element={<Navigate to="/help/crisis" replace />} />
         <Route path="/onboarding" element={<Navigate to="/" replace />} />
         <Route
           path="/"
