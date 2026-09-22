@@ -3,6 +3,7 @@ import { Layout } from './components/Layout'
 import { MedReminderHost } from './components/MedReminderHost'
 import { useAuth } from './context/AuthContext'
 import { useLocale } from './context/LocaleContext'
+import { getLocaleSetupDone } from './lib/locale'
 import { AuthPage } from './pages/AuthPage'
 import { CrisisHelpPage } from './pages/CrisisHelpPage'
 import { BodyPage } from './pages/BodyPage'
@@ -26,7 +27,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 function RequireLocaleSetup({ children }: { children: ReactNode }) {
   const { setupDone } = useLocale()
   const location = useLocation()
-  if (setupDone) return children
+  // localStorage is source of truth when state hasn't flushed yet after markSetupDone()
+  if (setupDone || getLocaleSetupDone()) return children
   const path = location.pathname
   if (
     path.startsWith('/onboarding') ||
