@@ -1,5 +1,11 @@
 # Changelog
 
+## Ver 0.14 (v0.14.0)
+
+- iOS「添加到主屏幕」：Thryve 图标 + Apple Web App meta
+- Android / Windows / Mac 可安装网页应用（manifest、192/512 图标、轻量 service worker）
+- 补齐 theme-color、应用标题等浏览器相关 meta
+
 ## Ver 0.13 (v0.13.0)
 
 - 新增模块「对照」：PHQ-9 / GAD-7 / PHQ-2 / PHQ-15 / WHO-5 / DASS-21 / AIS（六语）
