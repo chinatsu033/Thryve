@@ -459,10 +459,10 @@ export function HomePage() {
               {contrastDue ? (
                 <span className="home-contrast-dot" aria-hidden />
               ) : null}
-              <Button block variant="ghost" className="home-contrast-btn">
+              <div className="home-contrast-card">
                 <span className="home-cta-label">{t('nav.contrast')}</span>
                 <span className="home-cta-hint">{t('nav.contrast.hint')}</span>
-              </Button>
+              </div>
             </Link>
 
             <MedGlowCalendar userId={profile.id} onInteractionChange={setMedGestureLock} />
