@@ -1,7 +1,7 @@
 {
   "name": "thryve",
   "private": true,
-  "version": "0.14.0",
+  "version": "0.15.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,5 +29,5 @@
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   },
-  "description": "中文心理状态记录与就医总结 SPA"
+  "description": "\u4e2d\u6587\u5fc3\u7406\u72b6\u6001\u8bb0\u5f55\u4e0e\u5c31\u533b\u603b\u7ed3 SPA"
 }

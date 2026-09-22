@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -9,6 +9,7 @@ import {
   currentNotificationPermission,
   requestNotificationPermission,
 } from '../lib/medReminders'
+import { SECURITY_QUESTION_IDS, questionLabelKey } from '../lib/securityQuestions'
 import { APP_CHANGELOG, APP_VERSION_LABEL } from '../lib/version'
 import {
   DEFAULT_THEME,
@@ -19,7 +20,7 @@ import {
 } from '../types'
 
 export function SettingsPage() {
-  const { profile, setTheme, logout, updateProfile } = useAuth()
+  const { profile, session, setTheme, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const { region, language, t: tr, regionDisplayName, t } = useLocale()
   const fileRef = useRef<HTMLInputElement>(null)
@@ -27,6 +28,76 @@ export function SettingsPage() {
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
   const [notifPerm, setNotifPerm] = useState(() => currentNotificationPermission())
+  const [securityConfigured, setSecurityConfigured] = useState<boolean | null>(null)
+  const [secQs, setSecQs] = useState<[string, string, string]>(['', '', ''])
+  const [secAs, setSecAs] = useState<[string, string, string]>(['', '', ''])
+  const [secBusy, setSecBusy] = useState(false)
+  const securityRef = useRef<HTMLDivElement>(null)
+
+
+  const refreshSecurityStatus = async () => {
+    if (!session?.access_token) {
+      setSecurityConfigured(null)
+      return
+    }
+    try {
+      const res = await fetch('/api/security-questions/status', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const data = (await res.json().catch(() => ({}))) as { configured?: boolean }
+      if (res.ok) setSecurityConfigured(Boolean(data.configured))
+      else setSecurityConfigured(null)
+    } catch {
+      setSecurityConfigured(null)
+    }
+  }
+
+  useEffect(() => {
+    void refreshSecurityStatus()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.access_token])
+
+  const saveSecurityQuestions = async () => {
+    setMsg('')
+    if (secQs.some((q) => !q) || secAs.some((a) => !a.trim())) {
+      setMsg(t('security.err.incomplete'))
+      return
+    }
+    if (new Set(secQs).size !== 3) {
+      setMsg(t('security.err.duplicate'))
+      return
+    }
+    if (!session?.access_token) {
+      setMsg(t('security.err.saveFailed'))
+      return
+    }
+    setSecBusy(true)
+    try {
+      const res = await fetch('/api/security-questions/set', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          questions: secQs.map((id, i) => ({ id, answer: secAs[i] })),
+        }),
+      })
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
+      if (!res.ok || !data.ok) {
+        if (data.error === 'duplicate_question') setMsg(t('security.err.duplicate'))
+        else setMsg(t('security.err.saveFailed'))
+        return
+      }
+      setSecAs(['', '', ''])
+      setSecurityConfigured(true)
+      setMsg(t('security.saved'))
+    } catch {
+      setMsg(t('security.err.saveFailed'))
+    } finally {
+      setSecBusy(false)
+    }
+  }
 
   if (!profile) return null
 
@@ -147,6 +218,75 @@ export function SettingsPage() {
           {tr('settings.locale.changeLanguage')}
         </Button>
       </Card>
+
+
+      {securityConfigured === false ? (
+        <Card className="security-banner-card">
+          <p style={{ marginTop: 0, fontWeight: 700 }}>{t('security.banner.title')}</p>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t('security.banner.body')}
+          </p>
+          <Button
+            block
+            onClick={() => securityRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          >
+            {t('security.banner.cta')}
+          </Button>
+        </Card>
+      ) : null}
+
+      <div ref={securityRef}>
+        <Card title={t('security.title')}>
+          <p className="hint" style={{ marginTop: 0 }}>
+            {t('security.sub')}
+          </p>
+          {securityConfigured ? (
+            <p style={{ margin: '0 0 12px' }}>
+              <strong>{t('security.configured')}</strong>
+            </p>
+          ) : null}
+          {[0, 1, 2].map((i) => (
+            <div key={i}>
+              <Field label={t('security.pick', { n: String(i + 1) })}>
+                <select
+                  value={secQs[i]}
+                  onChange={(e) => {
+                    const next: [string, string, string] = [...secQs]
+                    next[i] = e.target.value
+                    setSecQs(next)
+                  }}
+                >
+                  <option value="">{t('common.unset')}</option>
+                  {SECURITY_QUESTION_IDS.map((id) => (
+                    <option
+                      key={id}
+                      value={id}
+                      disabled={secQs.includes(id) && secQs[i] !== id}
+                    >
+                      {t(questionLabelKey(id))}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('security.answer', { n: String(i + 1) })} hint={i === 0 ? t('security.answer.hint') : undefined}>
+                <input
+                  type="text"
+                  value={secAs[i]}
+                  onChange={(e) => {
+                    const next: [string, string, string] = [...secAs]
+                    next[i] = e.target.value
+                    setSecAs(next)
+                  }}
+                  autoComplete="off"
+                />
+              </Field>
+            </div>
+          ))}
+          <Button disabled={secBusy} onClick={() => void saveSecurityQuestions()}>
+            {secBusy ? t('common.pleaseWait') : t('security.save')}
+          </Button>
+        </Card>
+      </div>
 
       <Card title={t('settings.profile')}>
         <Field label={t('settings.email')}>

@@ -1,9 +1,17 @@
 /** App marketing version (Settings / Release). */
-export const APP_VERSION = '0.14.0'
-export const APP_VERSION_LABEL = 'Ver 0.14'
+export const APP_VERSION = '0.15.0'
+export const APP_VERSION_LABEL = 'Ver 0.15'
 
 /** Latest notes use i18n keys; older entries keep zh-Hans historical text. */
 export const APP_CHANGELOG: { version: string; notes: string[] }[] = [
+  {
+    version: '0.15.0',
+    notes: [
+      'changelog.0.15.0.1',
+      'changelog.0.15.0.2',
+      'changelog.0.15.0.3',
+    ],
+  },
   {
     version: '0.14.0',
     notes: [

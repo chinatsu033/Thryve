@@ -187,11 +187,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       const trimmed = email.trim()
       if (!trimmed) return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.needEmail') }
+
+      try {
+        const lockRes = await fetch('/api/auth/check-lock', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmed }),
+        })
+        const lockJson = (await lockRes.json().catch(() => ({}))) as {
+          locked?: boolean
+          error?: string
+        }
+        if (lockRes.status === 429 || lockJson.locked || lockJson.error === 'locked') {
+          return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.locked') }
+        }
+      } catch {
+        // Fail open if lock API unreachable
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: trimmed,
         password,
       })
-      if (error) return { ok: false as const, error: mapAuthError(error.message) }
+      if (error) {
+        try {
+          const failRes = await fetch('/api/auth/record-failure', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: trimmed }),
+          })
+          const failJson = (await failRes.json().catch(() => ({}))) as {
+            locked?: boolean
+            error?: string
+          }
+          if (failRes.status === 429 || failJson.locked || failJson.error === 'locked') {
+            return { ok: false as const, error: translate(getStoredLanguage(), 'auth.err.locked') }
+          }
+        } catch {
+          /* ignore */
+        }
+        return { ok: false as const, error: mapAuthError(error.message) }
+      }
+
+      try {
+        await fetch('/api/auth/record-success', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmed }),
+        })
+      } catch {
+        /* ignore */
+      }
+
       setSession(data.session)
       setUser(data.user)
       if (data.user) await loadProfileForUser(data.user)

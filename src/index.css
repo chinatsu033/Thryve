@@ -2445,3 +2445,25 @@ p {
   color: var(--color-primary);
   box-shadow: 0 0 0 1px rgba(var(--color-primary-rgb), 0.2);
 }
+
+
+/* Security questions reminder */
+.security-banner-card {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-primary) 16%, var(--color-card)) 0%,
+    var(--color-card) 72%
+  );
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-accent) 25%, transparent);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
