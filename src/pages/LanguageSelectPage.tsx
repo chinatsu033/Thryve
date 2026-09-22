@@ -5,23 +5,24 @@ import { useLocale } from '../context/LocaleContext'
 import { LANGUAGE_IDS, LANGUAGE_LABELS, type LanguageId } from '../lib/locale'
 
 export function LanguageSelectPage() {
-  const { language, setLanguage, markSetupDone, t, setupDone } = useLocale()
+  const { language, setLanguage, t, setupDone } = useLocale()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const fromSettings = params.get('from') === 'settings'
 
   const [selected, setSelected] = useState<LanguageId>(language)
 
-  const onFinish = () => {
+  const onContinue = () => {
     setLanguage(selected)
-    if (!setupDone || !fromSettings) {
-      markSetupDone()
-    }
     if (fromSettings) {
       navigate('/settings', { replace: true })
       return
     }
-    navigate('/auth', { replace: true })
+    if (setupDone) {
+      navigate('/', { replace: true })
+      return
+    }
+    navigate('/onboarding/region')
   }
 
   return (
@@ -44,8 +45,10 @@ export function LanguageSelectPage() {
           })}
         </div>
         <div style={{ height: 16 }} />
-        <Button block onClick={onFinish}>
-          {t('onboarding.language.finish')}
+        <Button block onClick={onContinue}>
+          {fromSettings || setupDone
+            ? t('onboarding.language.finish')
+            : t('onboarding.region.continue')}
         </Button>
       </Card>
     </Page>

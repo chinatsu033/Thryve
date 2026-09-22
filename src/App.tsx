@@ -37,7 +37,7 @@ function RequireLocaleSetup({ children }: { children: ReactNode }) {
   ) {
     return children
   }
-  return <Navigate to="/onboarding/region" replace />
+  return <Navigate to="/onboarding/language" replace />
 }
 
 export default function App() {

@@ -7,7 +7,7 @@ import { useLocale } from '../context/LocaleContext'
 import { REGION_IDS, regionLabel, type RegionId } from '../lib/locale'
 
 export function RegionSelectPage() {
-  const { region, setRegion, language, t, setupDone } = useLocale()
+  const { region, setRegion, language, t, setupDone, markSetupDone } = useLocale()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const fromSettings = params.get('from') === 'settings'
@@ -35,11 +35,12 @@ export function RegionSelectPage() {
       navigate('/help/crisis', { replace: true })
       return
     }
-    if (setupDone) {
-      navigate('/', { replace: true })
+    if (!setupDone) {
+      markSetupDone()
+      navigate('/auth', { replace: true })
       return
     }
-    navigate('/onboarding/language')
+    navigate('/', { replace: true })
   }
 
   return (
@@ -62,9 +63,7 @@ export function RegionSelectPage() {
         </div>
         <div style={{ height: 16 }} />
         <Button block onClick={onContinue}>
-          {fromSettings || fromCrisis || setupDone
-            ? t('onboarding.language.finish')
-            : t('onboarding.region.continue')}
+          {t('onboarding.language.finish')}
         </Button>
       </Card>
     </Page>
