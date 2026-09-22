@@ -1,14 +1,10 @@
-## Ver 0.1.3 (v0.1.3)
-
-- Sweep leftover Simplified Chinese UI through i18n (6 locales)
-- Localized common med names, region labels, summary templates, med calendar chrome
-
-## Ver 0.1.2 (v0.1.2)
-
-- 全应用多语言界面（简中 / 英 / 繁中港台 / 日 / 韩）与锁定模块名
-- 切换语言时同步更新 html lang 与 date-fns 日期格式
-
 # Changelog
+
+## Ver 0.12 (v0.12.0)
+
+- 全站六语界面（简中 / 英 / 繁中港台 / 日 / 韩）与锁定模块名 Attune / Cornerstone / Heartprint
+- 多地区紧急求助热线；开启流程先语言后地区
+- 主题预设名本地化；语言页无弹幕；地区页描边世界地图
 
 ## Ver 0.1.1 (v0.1.1)
 
