@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, Disclaimer, Field, Page } from '../components/ui'
 import { useAuth } from '../context/AuthContext'
@@ -10,6 +10,11 @@ import {
   requestNotificationPermission,
 } from '../lib/medReminders'
 import { SECURITY_QUESTION_IDS, questionLabelKey } from '../lib/securityQuestions'
+import {
+  isIosSafari,
+  isStandaloneDisplay,
+  type BeforeInstallPromptEvent,
+} from '../lib/pwaInstall'
 import { APP_CHANGELOG, APP_VERSION_LABEL } from '../lib/version'
 import {
   DEFAULT_THEME,
@@ -28,6 +33,9 @@ export function SettingsPage() {
   const [custom, setCustom] = useState<ThemeConfig>(profile?.theme ?? DEFAULT_THEME)
   const [displayName, setDisplayName] = useState(profile?.name ?? '')
   const [notifPerm, setNotifPerm] = useState(() => currentNotificationPermission())
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [installHint, setInstallHint] = useState('')
+
   const [securityConfigured, setSecurityConfigured] = useState<boolean | null>(null)
   const [secQs, setSecQs] = useState<[string, string, string]>(['', '', ''])
   const [secAs, setSecAs] = useState<[string, string, string]>(['', '', ''])
@@ -98,6 +106,36 @@ export function SettingsPage() {
       setSecBusy(false)
     }
   }
+
+
+  useEffect(() => {
+    const onBip = (e: Event) => {
+      e.preventDefault()
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+    }
+    window.addEventListener('beforeinstallprompt', onBip)
+    return () => window.removeEventListener('beforeinstallprompt', onBip)
+  }, [])
+
+  const addToDesktop = useCallback(async () => {
+    setInstallHint('')
+    if (isStandaloneDisplay()) {
+      setInstallHint(t('settings.install.already'))
+      return
+    }
+    if (installPrompt) {
+      await installPrompt.prompt()
+      const { outcome } = await installPrompt.userChoice
+      setInstallPrompt(null)
+      setInstallHint(outcome === 'accepted' ? t('settings.install.done') : t('settings.install.dismissed'))
+      return
+    }
+    if (isIosSafari()) {
+      setInstallHint(t('settings.install.ios'))
+      return
+    }
+    setInstallHint(t('settings.install.unavailable'))
+  }, [installPrompt, t])
 
   if (!profile) return null
 
@@ -193,6 +231,21 @@ export function SettingsPage() {
         >
           {tr('settings.crisis.open')}
         </Button>
+      </Card>
+
+
+      <Card title={t('settings.install.title')}>
+        <p className="hint" style={{ marginTop: 0 }}>
+          {t('settings.install.blurb')}
+        </p>
+        <Button block onClick={() => void addToDesktop()}>
+          {t('settings.install.button')}
+        </Button>
+        {installHint ? (
+          <p className="hint" style={{ marginBottom: 0, marginTop: 12 }}>
+            {installHint}
+          </p>
+        ) : null}
       </Card>
 
       <Card title={tr('settings.locale.title')}>
