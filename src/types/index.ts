@@ -84,7 +84,14 @@ export interface Medication {
   enabled: boolean
   createdAt: string
   updatedAt: string
+  /** Plasma-concentration simulation params. null/undefined = auto-match built-in table by name. */
+  pkParams?: MedPkParams | null
 }
+
+/** Stored in thryve_medications.pk_params (jsonb, nullable). */
+export type MedPkParams =
+  | { mode: 'builtin'; drugId: string }
+  | { mode: 'custom'; halfLifeH: number; tmaxH?: number | null }
 
 export interface MedLog {
   id: string

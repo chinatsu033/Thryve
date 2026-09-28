@@ -12,6 +12,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MedEditCard, type MedEditTarget } from './MedEditCard'
+import { PkSimSheet } from './PkSimSheet'
 import { Button, Empty, Modal } from './ui'
 import {
   deleteMedication,
@@ -64,6 +65,21 @@ function ChevronV({ up }: { up?: boolean }) {
   )
 }
 
+function WaveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+      <path
+        d="M2 16c2.2 0 2.6-9 5-9s2.6 11 5 11 2.8-7 5-7 2.4 3 5 3"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 function DotsIcon() {
   return (
     <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden>
@@ -101,16 +117,17 @@ export function MedGlowCalendar({
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [editTarget, setEditTarget] = useState<MedEditTarget>(null)
   const [manageOpen, setManageOpen] = useState(false)
+  const [pkOpen, setPkOpen] = useState(false)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const today = useMemo(() => new Date(), [])
 
   useEffect(() => {
     const active =
-      expanded || editTarget !== null || selectedDay !== null || manageOpen
+      expanded || editTarget !== null || selectedDay !== null || manageOpen || pkOpen
     onInteractionChange?.(active)
     return () => onInteractionChange?.(false)
-  }, [expanded, editTarget, selectedDay, manageOpen, onInteractionChange])
+  }, [expanded, editTarget, selectedDay, manageOpen, pkOpen, onInteractionChange])
 
   const rangeFrom = format(addDays(startOfMonth(month), -7), 'yyyy-MM-dd')
   const rangeTo = format(addDays(endOfMonth(month), 7), 'yyyy-MM-dd')
@@ -298,6 +315,19 @@ export function MedGlowCalendar({
             )}
           </AnimatePresence>
 
+          <button type="button" className="pk-entry" onClick={() => setPkOpen(true)}>
+            <span className="pk-entry-icon">
+              <WaveIcon />
+            </span>
+            <span className="pk-entry-text">
+              <span className="pk-entry-label">{tr('pk.entry')}</span>
+              <span className="pk-entry-hint">{tr('pk.entryHint')}</span>
+            </span>
+            <span className="pk-entry-caret" aria-hidden>
+              ›
+            </span>
+          </button>
+
           <button
             type="button"
             className="med-glow-chevron"
@@ -441,6 +471,14 @@ export function MedGlowCalendar({
           </div>
         )}
       </Modal>
+
+      <PkSimSheet
+        open={pkOpen}
+        onClose={() => setPkOpen(false)}
+        userId={userId}
+        meds={meds}
+        onSaved={reload}
+      />
 
       <MedEditCard
         open={editTarget !== null}

@@ -5,6 +5,7 @@
  */
 import { isLegacyMoodEntry, normalizeMood } from './mood'
 import { requireSupabase } from './supabase'
+import { parseMedPkParams } from './pkDrugs'
 import { DEFAULT_THEME, type ContrastResult, type ContrastScaleId, type EatingEntry, type EmotionEntry, type MedLog, type Medication, type Profile, type ProfileExport, type SleepEntry, type ThemeConfig } from '../types'
 import { getStoredLanguage } from './locale'
 import { translate } from '../locales/messages'
@@ -83,6 +84,7 @@ type MedicationRow = {
   enabled: boolean
   created_at: string
   updated_at: string
+  pk_params?: unknown
 }
 
 type MedLogRow = {
@@ -164,6 +166,7 @@ function rowToMedication(row: MedicationRow): Medication {
     enabled: row.enabled,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    pkParams: parseMedPkParams(row.pk_params),
   }
 }
 
@@ -328,6 +331,8 @@ export async function putMedication(m: Medication): Promise<void> {
     enabled: m.enabled,
     created_at: m.createdAt,
     updated_at: m.updatedAt || new Date().toISOString(),
+    // Only send pk_params when the caller knows it, so older code paths never clobber it.
+    ...(m.pkParams !== undefined ? { pk_params: m.pkParams } : {}),
   })
   if (error) throw error
 }
